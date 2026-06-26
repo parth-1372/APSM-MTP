@@ -1,0 +1,27 @@
+# Task List
+
+- `[/]` Phase 1: Environment Baseline
+  - `[ ]` Execute the base simulation from `3_simulation.ipynb` / `simulation.py` to confirm MSE ~1300 baseline.
+  - `[x]` Analyze `node.py`, `event.py`, and `simulator.py` to identify hook points.
+  - `[x]` Create initial comparison wrapper `run_all_comparisons.py` for GL-Baseline.
+- `[ ]` Phase 2: Predictive-Semantic Filter
+  - `[ ]` Add `evaluate_semantic_value()` to `node.py`.
+  - `[ ]` Implement adaptive threshold `τ(t) = k·σ(ε[t-N…t])` (N=50, k=2).
+  - `[ ]` Modify `event.py` to suppress transmissions based on threshold.
+  - `[ ]` Add `suppressed_packets` metric in `history.py`.
+  - `[ ]` Evaluate and visualize (Graph 1, Graph 3) bandwidth savings vs accuracy.
+- `[ ]` Phase 3: Predictive State Proxy
+  - `[ ]` Add `neighbor_forecast_models` dictionary to nodes in `node.py`.
+  - `[ ]` Implement hallucination logic for missing updates.
+  - `[ ]` Evaluate global view error consistency.
+- `[ ]` Phase 4: Agentic RL Integration
+  - `[ ]` Create SB3 Gym environment for offline training.
+  - `[ ]` Define state, action, and reward space.
+  - `[ ]` Train DQN offline and export lightweight `.pth`/`.onnx` model.
+  - `[ ]` Integrate inference into `node.py`.
+  - `[ ]` Evaluate inference overhead and intermediate performance.
+- `[ ]` Phase 5: Multi-Agent Orchestration
+  - `[ ]` Add task offloading mechanics in `simulator.py`.
+  - `[ ]` Implement Bottleneck Signature detector.
+  - `[ ]` Generate Graph 2 (Proactive vs. Reactive).
+  - `[ ]` Final Evaluation: Centralized, Single-node, GL-Baseline, APSM table and all graphs.
