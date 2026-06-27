@@ -32,6 +32,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 # Shared config
 # ─────────────────────────────────────────────
 N_NODES = 10
+MAX_SAMPLES = 50  # Cap training data for fast CPU runs
 K = 3
 DATASETS_FOLDER = Path(f"data/datasets/porto_{N_NODES}n_{K}k")
 NETWORKS_FOLDER = Path(f"data/networks/porto_{N_NODES}n_{K}k/seed1000")
@@ -44,9 +45,11 @@ def load_base_config(workspace_dir: str) -> dict:
     cfg["n_nodes"] = N_NODES
     cfg["workspace_dir"] = workspace_dir
     cfg["training"]["merge_strategy"] = MergeStrategy.AGE_WEIGHTED
-    cfg["training"]["epochs_per_update"] = 4
+    cfg["training"]["epochs_per_update"] = 1
     cfg["training"]["target_probability"] = 1
-    cfg["training"]["stop_criterion"] = StopCriterion.NO_IMPROVEMENTS.value
+    cfg["training"]["stop_criterion"] = StopCriterion.FIXED_UPDATES.value
+    cfg["training"]["fixed_updates"] = 10
+    cfg["training"]["is_baseline"] = "baseline" in workspace_dir
     cfg["training"]["patience"] = 5
     cfg["training"]["min_delta"] = 0.1
     return cfg
@@ -58,12 +61,17 @@ def run_one_simulation(workspace_dir: str) -> Path:
     config = Config.model_validate(cfg_json)
     model_creator = functools.partial(create_LSTM, config=config)
 
-    node_data_fn = functools.partial(
+    _raw_node_data_fn = functools.partial(
         get_node_dataset,
         base_folder=DATASETS_FOLDER,
         simulation_number=0,
         ds_name="",
     )
+    def node_data_fn(node_index):
+        ds = _raw_node_data_fn(node_index=node_index)
+        for key in ("X_train", "Y_train", "X_val", "Y_val"):
+            ds[key] = ds[key][:MAX_SAMPLES]
+        return ds
     get_test_set = functools.partial(
         get_common_test_set,
         node_data_fn=node_data_fn,

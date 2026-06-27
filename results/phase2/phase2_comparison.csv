@@ -1,0 +1,3 @@
+Method,Avg_MSE_scaled,Avg_MSE_raw,Total_Packets_Sent,Suppressed_Packets,Packet_Reduction_pct
+GL-Baseline,0.344308,32029.3,167,0,0.0
+APSM-Phase2,0.177127,16477.3,161,69,29.2

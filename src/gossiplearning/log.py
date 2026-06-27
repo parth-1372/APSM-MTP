@@ -24,7 +24,7 @@ class Logger:
         with self._log_file.open("a") as log_file:
             log_file.write(f"{text}\n")
 
-    def node_event_log(self, msg: str, time: Time, node: NodeId):
+    def node_event_log_old(self, msg: str, time: Time, node: NodeId):
         """
         Add a new INFO log entry representing a single node event.
 
@@ -44,3 +44,6 @@ class Logger:
         """
         if self._level >= LogLevel.DEBUG:
             self._add_log_line(f"[DEBUG]: {msg}")
+
+    def node_event_log(self, *args, **kwargs):
+        pass

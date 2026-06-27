@@ -108,6 +108,8 @@ class Node:
         self.last_threshold: float = float("inf")  # open gate until window fills
         # Total packets suppressed by THIS node
         self.suppressed_count: int = 0
+        self.consecutive_suppressions: int = 0
+        self.force_transmit: bool = False
 
     def merge_models(self) -> None:
         """
@@ -150,16 +152,25 @@ class Node:
             self.last_threshold = float("inf")
 
     def should_suppress_transmission(self) -> bool:
-        """
-        Returns True if the node should STAY SILENT (not gossip this round).
-        
-        Logic: suppress when the current surprise score ε is WITHIN the
-        normal noise band τ, meaning the update carries no semantic value.
-        We always transmit on the very first update (threshold = inf).
-        """
+        # If baseline, never suppress
+        if getattr(self._training_config, "is_baseline", False):
+            return False
+            
         if self.last_threshold == float("inf"):
-            return False  # window not filled yet — always send
-        return self.last_surprise <= self.last_threshold
+            return False
+            
+        suppress = self.last_surprise <= self.last_threshold
+        
+        if suppress:
+            self.consecutive_suppressions += 1
+            if self.consecutive_suppressions >= 3:
+                # Force heartbeat transmission to prevent network deadlock
+                self.consecutive_suppressions = 0
+                return False
+        else:
+            self.consecutive_suppressions = 0
+            
+        return suppress
 
     def perform_update(self) -> tuple[ModelWeights, ModelWeights, Loss, int]:
         """
