@@ -26,12 +26,9 @@ fastparquet = "^2023.8.0"
 [tool.poetry.group.dev.dependencies]
 black = "^23.9.1"
 
-[tool.poetry.group.linux.dependencies]
-tensorflow = "~2.12"
-
-[tool.poetry.group.mac.dependencies]
-tensorflow-metal = "~0.8.0"
-tensorflow-macos = "~2.12"
+tensorflow = { version = "~2.12", markers = "sys_platform != 'darwin'" }
+tensorflow-macos = { version = "~2.12", markers = "sys_platform == 'darwin'" }
+tensorflow-metal = { version = "~0.8.0", markers = "sys_platform == 'darwin'" }
 
 [build-system]
 requires = ["poetry-core"]
