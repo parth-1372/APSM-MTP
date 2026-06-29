@@ -77,7 +77,7 @@ FIXED_UPDATES  = 100      # gossip rounds per node
 EPOCHS_PER_UPDATE = 3
 
 # Number of independent seeds for statistical validity
-N_SEEDS        = 1        # Reduced to 1 to fit inside Kaggle 12-hour limit
+N_SEEDS        = 3        # produces mean ± std in the final table
 
 # APSM Semantic Filter hyper-parameters (also settable in config.json)
 SEMANTIC_K         = 2.0   # τ(t) = K · σ(ε)   — 95 % CI band
