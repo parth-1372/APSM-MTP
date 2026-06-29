@@ -28,12 +28,10 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")          # headless — no display needed on Kaggle
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 import numpy as np
 
 from gossiplearning.config import Config
 from gossiplearning.models import MergeStrategy, StopCriterion
-from gossiplearning.utils import NpEncoder
 from gossiplearning.weight import weight_by_dataset_size
 from utils.data import get_common_test_set
 from utils.gossip_training import get_node_dataset, round_trip_fn, run_simulation
@@ -45,6 +43,8 @@ from utils.model_creators import create_LSTM
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"   # silence TF info spam
 
 import tensorflow as tf
+import tensorflow.config          # explicit import required by type checker
+import tensorflow.config.experimental
 
 gpus = tf.config.list_physical_devices("GPU")
 if gpus:
