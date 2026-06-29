@@ -158,6 +158,44 @@ class TrainingConfig(BaseModel):
         description="Whether to serialize the optimizer state together with the model weights",
     )
 
+    # ── Phase 2: Adaptive Predictive-Semantic Filter (APSM) ──────────
+    is_baseline: bool = Field(
+        False,
+        description=(
+            "When True, disables the APSM Semantic Filter entirely so the node "
+            "behaves as the original GL baseline (Tundo 2025). "
+            "Set to True for the GL-Baseline run and False for the APSM run."
+        ),
+    )
+    semantic_k: float = Field(
+        2.0,
+        ge=0.0,
+        description=(
+            "Sensitivity multiplier k for the adaptive suppression threshold τ(t) = k · σ(ε). "
+            "k=2.0 corresponds to approximately a 95%% confidence band under Gaussian noise, "
+            "meaning updates within 2 standard deviations of the historical surprise are "
+            "considered uninformative and suppressed."
+        ),
+    )
+    semantic_window: int = Field(
+        50,
+        ge=2,
+        description=(
+            "Size N of the sliding window of recent validation-loss surprise scores ε(t). "
+            "σ is computed over this window to set the adaptive threshold. "
+            "Larger N = smoother threshold (less reactive to sudden changes)."
+        ),
+    )
+    semantic_heartbeat: int = Field(
+        3,
+        ge=1,
+        description=(
+            "Maximum number of consecutive suppressed transmissions before forcing a "
+            "'heartbeat' send. Prevents complete network silence / deadlock when all nodes "
+            "converge and want to suppress simultaneously."
+        ),
+    )
+
 
 class HistoryConfig(BaseModel):
     eval_test: bool = Field(

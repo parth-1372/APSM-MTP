@@ -98,18 +98,20 @@ class Node:
         self.eval_metrics: list[Metrics] = []
         self.weight = weight_fn(self.data)
 
-        # --- Phase 2: Predictive-Semantic Filter state ---
-        # Sliding window of the last N validation-loss errors (ε)
-        self._SEMANTIC_WINDOW: int = 50   # N
-        self._SEMANTIC_K: float = 2.0    # k (95 % confidence band)
-        self._error_window: deque[float] = deque(maxlen=self._SEMANTIC_WINDOW)
-        # Tracks the last computed threshold τ and surprise score ε
+        # ── Phase 2: Predictive-Semantic Filter state ────────────────────────
+        # Parameters are read from config so they can be tuned via config.json
+        self._semantic_k: float = training_config.semantic_k
+        self._semantic_window: int = training_config.semantic_window
+        self._semantic_heartbeat: int = training_config.semantic_heartbeat
+
+        # Sliding window of recent validation-loss surprise scores ε(t)
+        self._error_window: deque[float] = deque(maxlen=self._semantic_window)
+        # Last computed surprise ε and adaptive threshold τ for this node
         self.last_surprise: float = 0.0
         self.last_threshold: float = float("inf")  # open gate until window fills
-        # Total packets suppressed by THIS node
-        self.suppressed_count: int = 0
-        self.consecutive_suppressions: int = 0
-        self.force_transmit: bool = False
+        # Transmission suppression counters
+        self.suppressed_count: int = 0          # total suppressed sends (lifetime)
+        self.consecutive_suppressions: int = 0  # consecutive suppressions (for heartbeat)
 
     def merge_models(self) -> None:
         """
@@ -146,30 +148,44 @@ class Node:
         self.last_surprise = surprise
 
         if len(self._error_window) >= 2:
-            self.last_threshold = self._SEMANTIC_K * float(np.std(self._error_window))
+            self.last_threshold = self._semantic_k * float(np.std(self._error_window))
         else:
-            # Not enough history yet — always transmit
+            # Not enough history yet — always transmit (window not yet filled)
             self.last_threshold = float("inf")
 
     def should_suppress_transmission(self) -> bool:
-        # If baseline, never suppress
-        if getattr(self._training_config, "is_baseline", False):
+        """
+        Phase 2 APSM gating rule.
+
+        Returns True (suppress) if the current surprise score ε(t) falls within
+        the adaptive noise band τ(t) = k · σ(ε[t-N..t]), meaning the new model
+        update is considered semantically uninformative and not worth gossiping.
+
+        Special cases:
+          - Baseline mode (is_baseline=True): always returns False (never suppress).
+          - Window not yet filled: threshold = ∞, always returns False.
+          - Heartbeat: if suppressed `semantic_heartbeat` times in a row,
+            force one transmission to prevent network deadlock.
+        """
+        # GL-Baseline: semantic filter disabled
+        if self._training_config.is_baseline:
             return False
-            
+
+        # Window not yet filled → threshold is ∞ → always transmit
         if self.last_threshold == float("inf"):
             return False
-            
+
         suppress = self.last_surprise <= self.last_threshold
-        
+
         if suppress:
             self.consecutive_suppressions += 1
-            if self.consecutive_suppressions >= 3:
-                # Force heartbeat transmission to prevent network deadlock
+            if self.consecutive_suppressions >= self._semantic_heartbeat:
+                # Force a heartbeat send to prevent complete network deadlock
                 self.consecutive_suppressions = 0
                 return False
         else:
             self.consecutive_suppressions = 0
-            
+
         return suppress
 
     def perform_update(self) -> tuple[ModelWeights, ModelWeights, Loss, int]:

@@ -45,5 +45,13 @@ class Logger:
         if self._level >= LogLevel.DEBUG:
             self._add_log_line(f"[DEBUG]: {msg}")
 
-    def node_event_log(self, *args, **kwargs):
-        pass
+    def node_event_log(self, msg: str, time: Time, node: NodeId):
+        """
+        Add a new INFO log entry representing a single node event.
+
+        :param msg: the message to be logged
+        :param time: the simulated time when the event happened
+        :param node: the ID of the node where the event happened
+        """
+        if self._level >= LogLevel.INFO:
+            self._add_log_line(f"[INFO]  [{time}s] - [Node {node}] : {msg}")

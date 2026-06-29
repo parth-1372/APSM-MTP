@@ -32,7 +32,11 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 # Shared config
 # ─────────────────────────────────────────────
 N_NODES = 10
-MAX_SAMPLES = 50  # Cap training data for fast CPU runs
+# NOTE: MAX_SAMPLES caps training data per node for fast CPU test runs.
+# On EC2 with GPU or for a full paper-quality run, set to None (no cap) or a
+# much higher value (e.g., 5000). With 50, training completes in ~10 min on
+# a t3.large CPU; with None, it takes 2-3h.
+MAX_SAMPLES = 50  # set to None for full-data runs
 K = 3
 DATASETS_FOLDER = Path(f"data/datasets/porto_{N_NODES}n_{K}k")
 NETWORKS_FOLDER = Path(f"data/networks/porto_{N_NODES}n_{K}k/seed1000")
@@ -49,7 +53,7 @@ def load_base_config(workspace_dir: str) -> dict:
     cfg["training"]["target_probability"] = 1
     cfg["training"]["stop_criterion"] = StopCriterion.FIXED_UPDATES.value
     cfg["training"]["fixed_updates"] = 10
-    cfg["training"]["is_baseline"] = "baseline" in workspace_dir
+    cfg["training"]["is_baseline"] = workspace_dir == "experiments/gl_baseline"
     cfg["training"]["patience"] = 5
     cfg["training"]["min_delta"] = 0.1
     return cfg
@@ -69,8 +73,9 @@ def run_one_simulation(workspace_dir: str) -> Path:
     )
     def node_data_fn(node_index):
         ds = _raw_node_data_fn(node_index=node_index)
-        for key in ("X_train", "Y_train", "X_val", "Y_val"):
-            ds[key] = ds[key][:MAX_SAMPLES]
+        if MAX_SAMPLES is not None:
+            for key in ("X_train", "Y_train", "X_val", "Y_val"):
+                ds[key] = ds[key][:MAX_SAMPLES]
         return ds
     get_test_set = functools.partial(
         get_common_test_set,
@@ -229,7 +234,7 @@ def main():
         print("❌  Data not found. Please run 2_dataset_generation.py first.")
         return
 
-    results_phase2 = RESULTS_DIR / "phase 2"
+    results_phase2 = RESULTS_DIR / "phase2"
 
     # ── 1. GL-Baseline ─────────────────────────────────────────────
     baseline_workspace = "experiments/gl_baseline"
