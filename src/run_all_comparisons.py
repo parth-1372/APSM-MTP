@@ -25,6 +25,9 @@ import functools
 import datetime
 from pathlib import Path
 
+SRC_DIR = Path(__file__).resolve().parent
+ROOT_DIR = SRC_DIR.parent
+
 import matplotlib
 matplotlib.use("Agg")          # headless — no display needed on Kaggle
 import matplotlib.pyplot as plt
@@ -81,9 +84,9 @@ SEMANTIC_WINDOW    = 50    # sliding window length N
 SEMANTIC_HEARTBEAT = 5     # forced send after this many consecutive suppressions
 
 # ──────────────────────────────────────────────────────────────────────
-DATASETS_FOLDER = Path(f"data/datasets/porto_{N_NODES}n_{K}k")
-NETWORKS_FOLDER = Path(f"data/networks/porto_{N_NODES}n_{K}k")
-RESULTS_DIR     = Path("../results/phase2_full")
+DATASETS_FOLDER = ROOT_DIR / f"data/datasets/porto_{N_NODES}n_{K}k"
+NETWORKS_FOLDER = ROOT_DIR / f"data/networks/porto_{N_NODES}n_{K}k"
+RESULTS_DIR     = ROOT_DIR / "results/phase2_full"
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -92,7 +95,7 @@ RESULTS_DIR     = Path("../results/phase2_full")
 
 def load_base_config(workspace_dir: str, seed: int, is_baseline: bool) -> dict:
     """Build a simulation config dict from config.json with experiment overrides."""
-    with open("config.json", "r") as f:
+    with open(SRC_DIR / "config.json", "r") as f:
         cfg = json.load(f)
 
     cfg["n_nodes"]          = N_NODES
@@ -477,7 +480,7 @@ def main():
         print(f"{'━'*55}")
 
         # ── GL-Baseline ────────────────────────────────────────────
-        b_workspace = f"experiments/gl_baseline_seed{seed}"
+        b_workspace = str(SRC_DIR / f"experiments/gl_baseline_seed{seed}")
         b_hist_path = Path(b_workspace) / "0" / "history.json"
 
         if b_hist_path.exists():
@@ -491,7 +494,7 @@ def main():
         baseline_runs.append(extract_metrics(b_hist_path))
 
         # ── APSM ────────────────────────────────────────────────────
-        a_workspace = f"experiments/apsm_phase2_seed{seed}"
+        a_workspace = str(SRC_DIR / f"experiments/apsm_phase2_seed{seed}")
         a_hist_path = Path(a_workspace) / "0" / "history.json"
 
         a_start = time.time()
