@@ -199,8 +199,7 @@ class Simulator:
                     f"Simulating unreliable link between {event.from_node_id} and {event.handler_node_id}: ReceiveModelEvent will be ignored."
                 )
                 return True
-        else:
-            return False
+        return False
 
     def _determine_link_failure(self):
         return np.random.choice([True, False], p=[self._config.training.link_failure_probability, 1-self._config.training.link_failure_probability])
