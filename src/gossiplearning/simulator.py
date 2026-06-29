@@ -1,5 +1,6 @@
 from typing import Optional
 import sys
+import time as _wall_time
 from queue import PriorityQueue
 
 import numpy as np
@@ -106,6 +107,10 @@ class Simulator:
             self._events_queue.put(IsTimeToFailEvent(time=self._config.training.is_time_to_fail_frequency, handler_node_id=None))
 
         num_stopped_nodes = 0
+        events_processed  = 0
+        _last_heartbeat   = _wall_time.time()
+        _HEARTBEAT_SECS   = 30        # print a progress line every 30 wall-clock seconds
+
         while (
             not self._events_queue.empty() and num_stopped_nodes < self._config.n_nodes
         ):
@@ -115,7 +120,7 @@ class Simulator:
                 if self._config.training.failure_mode == FailureMode.LINK_FAILURE and isinstance(event, ReceiveModelEvent):
                     if self._simulate_unreliable_link(event):
                         continue
-                
+
                 new_events = process_event(
                     event,
                     node=self._nodes[event.handler_node_id] if event.handler_node_id is not None else None,
@@ -128,13 +133,33 @@ class Simulator:
                 for new_event in new_events:
                     self._events_queue.put(new_event)
 
+                events_processed += 1
+
+                # ── Node-stopped milestone ────────────────────────────
                 if len(self._history.stopped_time) > num_stopped_nodes:
                     num_stopped_nodes = len(self._history.stopped_time)
+                    pct = int(num_stopped_nodes / self._config.n_nodes * 100)
+                    elapsed = _wall_time.time() - _last_heartbeat
                     print(
-                        f"{num_stopped_nodes}/{self._config.n_nodes} stopped! (Time {event.time}s)"
+                        f"  ⏹  Node done: {num_stopped_nodes}/{self._config.n_nodes} "
+                        f"({pct}%)  |  sim_t={event.time}s  |  events={events_processed:,}"
                     )
                     sys.stdout.flush()
-            except KeyboardInterrupt as e:
+                    _last_heartbeat = _wall_time.time()  # reset heartbeat after milestone
+
+                # ── Periodic heartbeat (no milestone yet) ─────────────
+                elif _wall_time.time() - _last_heartbeat >= _HEARTBEAT_SECS:
+                    n_done = len(self._history.stopped_time)
+                    suppressed = sum(self._history.suppressed_packets.values())
+                    print(
+                        f"  ⏳  Running ...  nodes_done={n_done}/{self._config.n_nodes}  "
+                        f"sim_t={event.time}s  events={events_processed:,}  "
+                        f"suppressed={suppressed}"
+                    )
+                    sys.stdout.flush()
+                    _last_heartbeat = _wall_time.time()
+
+            except KeyboardInterrupt:
                 self._logger.debug_log("Simulation interrupted by user.")
                 break
 
