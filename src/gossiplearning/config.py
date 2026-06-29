@@ -32,13 +32,12 @@ class NodeConfig(BaseModel):
     """
 
     id: NodeId = Field(
-        ...,
         ge=0,
         description="Numerical ID representing the node, ranging from 0 to the number of nodes ("
         "excluded)",
     )
     links: tuple[Link, ...] = Field(
-        ..., description="List of links connecting to neighbors"
+        description="List of links connecting to neighbors"
     )
 
     @model_validator(mode="after")
@@ -57,24 +56,20 @@ class TrainingConfig(BaseModel):
     """
 
     patience: int = Field(
-        ...,
         ge=1,
         description="The number of epochs without improvements that are executed by each node "
         "before stopping",
     )
     min_delta: float = Field(
-        ...,
         ge=0,
         description="The minimum improvement required to consider an epoch as an improvement",
     )
     perc_sent_weights: float = Field(
-        ...,
         gt=0,
         le=1,
         description="The percentage of weights that are sent at each iteration",
     )
     target_probability: float = Field(
-        ...,
         gt=0,
         le=1,
         description="The probability that a neighbor node is selected to send model weights",
@@ -83,58 +78,51 @@ class TrainingConfig(BaseModel):
         FailureMode.NONE, description="The failure mode to be used"
     )
     is_time_to_fail_frequency: int = Field(
-        ...,
         ge=1,
         description="The frequency at which the simulator checks if it is time to inject a failure",
     )
     node_recovery_time_mean: int = Field(
-        ...,
         ge=1,
         description="The mean time it takes for a node to recover from a failure",
     )
     node_recovery_time_std: int = Field(
-        ...,
         ge=0,
         description="The standard deviation of the time it takes for a node to recover from a failure",
     )
     node_failure_probability: float = Field(
-        ...,
         gt=0,
         le=1,
         description="The probability that a node is failing",
     )
     max_percentage_failed_nodes: float = Field(
-        ...,
         ge=0,
         le=1,
         description="The maximum percentage of nodes that can fail at the same time",
     )
     link_failure_probability: float = Field(
-        ...,
         gt=0,
         le=1,
         description="The probability that a node is failing",
     )
     models_folder: str = Field(
-        ..., description="The path of the folder where models should be saved"
+        description="The path of the folder where models should be saved"
     )
     n_input_features: int = Field(
-        ..., description="The number of input features per timestep"
+        description="The number of input features per timestep"
     )
-    n_output_vars: int = Field(..., description="The number of predicted variables")
+    n_output_vars: int = Field(description="The number of predicted variables")
     merge_strategy: MergeStrategy = Field(
         MergeStrategy.SIMPLE_AVG, description="The strategy used to merge model weights"
     )
-    batch_size: int = Field(..., description="The batch size to be used for training")
+    batch_size: int = Field(description="The batch size to be used for training")
     epochs_per_update: int = Field(
-        ...,
         ge=1,
         description="The number of training epochs that are"
         "performed each time a node triggers an "
         "update of the model",
     )
     stop_criterion: StopCriterion = Field(
-        ..., description="The stop criterion to be used"
+        description="The stop criterion to be used"
     )
     fixed_updates: int = Field(
         1,
@@ -212,12 +200,12 @@ class Config(BaseModel):
     Configuration object to be used for configuring the simulator.
     """
 
-    n_nodes: int = Field(..., description="Number of nodes")
+    n_nodes: int = Field(description="Number of nodes")
     nodes: tuple[NodeConfig, ...] = Field(())
-    training: TrainingConfig = Field(...)
-    log_level: LogLevel = Field("INFO", description="The simulator log level")
-    workspace_dir: Path = Field(..., description="The workspace directory")
-    history: HistoryConfig = Field(..., description="History config")
+    training: TrainingConfig
+    log_level: LogLevel = Field(LogLevel.INFO, description="The simulator log level")
+    workspace_dir: Path = Field(description="The workspace directory")
+    history: HistoryConfig = Field(description="History config")
 
     @field_validator("workspace_dir")
     @classmethod
