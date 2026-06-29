@@ -31,8 +31,7 @@ n_small_dataset_nodes = 0
 small_dataset_suffix = f"_{n_small_dataset_nodes}sd" if n_small_dataset_nodes > 0 else ""
 
 base_dataset_folder = Path(f"data/datasets/porto_{n_nodes}n_3k{small_dataset_suffix}")
-# Changed seed1000 to 0 to match standard folder structure
-base_network_folder = Path(f"data/networks/porto_{n_nodes}n_3k")
+base_network_folder = Path(f"data/networks/porto_{n_nodes}n_3k/seed1000")
 
 
 # In[5]:
@@ -413,12 +412,12 @@ for i in range(10):
 # In[18]:
 
 
-# plot_multivariate_time_series(
-#     real_trends[0],
-#     show_variables=(0,),
-#     start_from=0,
-#     end=100,
-# )
+plot_multivariate_time_series(
+    real_trends[0],
+    show_variables=(0,),
+    start_from=0,
+    end=100,
+)
 
 
 # In[19]:
