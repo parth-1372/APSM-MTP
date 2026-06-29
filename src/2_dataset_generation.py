@@ -31,7 +31,7 @@ n_small_dataset_nodes = 0
 small_dataset_suffix = f"_{n_small_dataset_nodes}sd" if n_small_dataset_nodes > 0 else ""
 
 base_dataset_folder = Path(f"data/datasets/porto_{n_nodes}n_3k{small_dataset_suffix}")
-base_network_folder = Path(f"data/networks/porto_{n_nodes}n_3k/seed1000")
+base_network_folder = Path(f"data/networks/porto_{n_nodes}n_3k")
 
 
 # In[5]:
