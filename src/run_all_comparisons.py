@@ -23,6 +23,7 @@ import sys
 import time
 import functools
 import datetime
+import gc
 from pathlib import Path
 
 SRC_DIR = Path(__file__).resolve().parent
@@ -493,6 +494,10 @@ def main():
 
         baseline_runs.append(extract_metrics(b_hist_path))
 
+        # Clear memory before starting APSM
+        tf.keras.backend.clear_session()
+        gc.collect()
+
         # ── APSM ────────────────────────────────────────────────────
         a_workspace = str(SRC_DIR / f"experiments/apsm_phase2_seed{seed}")
         a_hist_path = Path(a_workspace) / "0" / "history.json"
@@ -517,6 +522,10 @@ def main():
         print(f"      Baseline MSE = {b['avg_mse']:.5f}  |  APSM MSE = {a['avg_mse']:.5f}")
         print(f"      Packets sent: baseline={b['total_sent']}, apsm={a['total_sent']}")
         print(f"      Suppressed: {a['total_suppressed']}  →  {pr_now:.1f}% reduction")
+
+        # Clear memory before starting the next seed
+        tf.keras.backend.clear_session()
+        gc.collect()
 
     # ── Final aggregated table ─────────────────────────────────────
     pkt_red, mse_delta = print_comparison_table(baseline_runs, apsm_runs)
