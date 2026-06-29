@@ -412,12 +412,13 @@ for i in range(10):
 # In[18]:
 
 
-plot_multivariate_time_series(
-    real_trends[0],
-    show_variables=(0,),
-    start_from=0,
-    end=100,
-)
+# (Commented out to prevent crash on Kaggle terminal execution)
+# plot_multivariate_time_series(
+#     real_trends[0],
+#     title="Real time series for Tower 0",
+#     end=60,
+#     show_variables=(0,)
+# )
 
 
 # In[19]:
