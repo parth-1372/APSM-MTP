@@ -82,7 +82,7 @@ SEMANTIC_HEARTBEAT = 5     # forced send after this many consecutive suppression
 
 # ──────────────────────────────────────────────────────────────────────
 DATASETS_FOLDER = Path(f"data/datasets/porto_{N_NODES}n_{K}k")
-NETWORKS_FOLDER = Path(f"data/networks/porto_{N_NODES}n_{K}k/seed1000")
+NETWORKS_FOLDER = Path(f"data/networks/porto_{N_NODES}n_{K}k")
 RESULTS_DIR     = Path("../results/phase2_full")
 
 
