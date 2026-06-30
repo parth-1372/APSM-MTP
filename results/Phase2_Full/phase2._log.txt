@@ -1,0 +1,534 @@
+▶️   GL-Baseline (seed 0) — running...
+    Node 0: train=21946, val=2439
+    Node 1: train=21946, val=2439
+    Node 2: train=21946, val=2439
+    Node 3: train=21946, val=2439
+    Node 4: train=21946, val=2439
+    Node 5: train=21946, val=2439
+    Node 6: train=21946, val=2439
+    Node 7: train=21946, val=2439
+    Node 8: train=21946, val=2439
+    Node 9: train=21946, val=2439
+  ⏳  Running ...  nodes_done=0/10  sim_t=46s  events=16  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=50s  events=24  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=57s  events=41  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=64s  events=56  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=71s  events=69  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=78s  events=79  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=80s  events=88  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=87s  events=106  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=93s  events=120  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=101s  events=131  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=106s  events=141  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=109s  events=147  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=115s  events=167  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=117s  events=174  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=124s  events=188  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=131s  events=200  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=139s  events=212  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=144s  events=228  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=147s  events=237  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=154s  events=253  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=161s  events=265  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=168s  events=274  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=174s  events=293  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=175s  events=302  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=183s  events=316  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=184s  events=322  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=196s  events=338  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=199s  events=346  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=205s  events=366  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=213s  events=382  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=221s  events=394  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=226s  events=402  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=229s  events=412  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=235s  events=433  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=243s  events=448  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=251s  events=460  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=258s  events=472  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=260s  events=481  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=265s  events=496  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=273s  events=513  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=281s  events=526  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=286s  events=534  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=289s  events=543  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=295s  events=563  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=303s  events=578  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=304s  events=584  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=316s  events=595  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=319s  events=608  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=325s  events=625  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=327s  events=634  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=334s  events=647  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=341s  events=659  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=346s  events=667  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=349s  events=674  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=355s  events=693  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=357s  events=701  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=364s  events=713  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=371s  events=725  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=378s  events=737  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=380s  events=743  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=385s  events=762  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=393s  events=776  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=394s  events=781  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=406s  events=797  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=409s  events=806  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=414s  events=821  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=417s  events=828  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=423s  events=842  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=431s  events=854  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=436s  events=863  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=439s  events=871  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=445s  events=889  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=453s  events=907  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=454s  events=913  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=466s  events=929  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=469s  events=937  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=475s  events=957  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=483s  events=972  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=484s  events=976  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=491s  events=987  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=496s  events=996  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=499s  events=1,003  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=505s  events=1,025  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=513s  events=1,040  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=521s  events=1,052  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=528s  events=1,063  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=534s  events=1,079  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=537s  events=1,091  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=543s  events=1,106  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=551s  events=1,119  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=558s  events=1,128  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=559s  events=1,135  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=565s  events=1,153  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=573s  events=1,168  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=574s  events=1,174  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=581s  events=1,185  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=588s  events=1,194  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=590s  events=1,201  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=595s  events=1,220  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=603s  events=1,235  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=604s  events=1,240  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=616s  events=1,257  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=619s  events=1,265  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=625s  events=1,281  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=633s  events=1,299  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=634s  events=1,304  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=641s  events=1,315  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=648s  events=1,327  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=650s  events=1,335  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=655s  events=1,351  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=663s  events=1,366  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=664s  events=1,370  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=671s  events=1,382  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=676s  events=1,389  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=679s  events=1,396  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=685s  events=1,415  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=693s  events=1,430  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=694s  events=1,436  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=701s  events=1,447  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=708s  events=1,455  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=710s  events=1,463  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=715s  events=1,482  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=723s  events=1,496  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=724s  events=1,501  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=736s  events=1,514  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=739s  events=1,524  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=744s  events=1,542  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=745s  events=1,547  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=753s  events=1,562  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=754s  events=1,567  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=766s  events=1,580  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=769s  events=1,591  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=774s  events=1,602  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=775s  events=1,614  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=783s  events=1,629  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=784s  events=1,633  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=791s  events=1,644  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=798s  events=1,654  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=800s  events=1,660  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=805s  events=1,680  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=813s  events=1,693  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=814s  events=1,698  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=826s  events=1,710  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=829s  events=1,721  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=834s  events=1,736  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=835s  events=1,745  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=843s  events=1,760  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=844s  events=1,764  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=856s  events=1,781  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=859s  events=1,790  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=865s  events=1,811  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=873s  events=1,826  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=881s  events=1,838  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=886s  events=1,847  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=890s  events=1,858  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=897s  events=1,878  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=904s  events=1,893  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=911s  events=1,904  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=919s  events=1,917  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=925s  events=1,938  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=927s  events=1,946  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=933s  events=1,956  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=941s  events=1,968  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=946s  events=1,976  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=949s  events=1,984  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=955s  events=2,002  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=957s  events=2,009  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=964s  events=2,024  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=971s  events=2,037  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=979s  events=2,049  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=984s  events=2,061  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=987s  events=2,076  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=994s  events=2,091  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=1006s  events=2,104  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=1009s  events=2,115  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=1015s  events=2,134  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=1023s  events=2,151  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=1031s  events=2,164  suppressed=0
+  ⏹  Node done: 1/10 (10%)  |  sim_t=1036s  |  events=2,170
+  ⏹  Node done: 2/10 (20%)  |  sim_t=1036s  |  events=2,171
+  ⏳  Running ...  nodes_done=2/10  sim_t=1039s  events=2,181  suppressed=0
+  ⏹  Node done: 3/10 (30%)  |  sim_t=1041s  |  events=2,187
+  ⏳  Running ...  nodes_done=3/10  sim_t=1045s  events=2,201  suppressed=0
+  ⏹  Node done: 4/10 (40%)  |  sim_t=1052s  |  events=2,212
+  ⏳  Running ...  nodes_done=4/10  sim_t=1069s  events=2,235  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1075s  events=2,249  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1084s  events=2,265  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1099s  events=2,278  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1105s  events=2,294  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1129s  events=2,315  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1135s  events=2,331  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1151s  events=2,349  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1160s  events=2,359  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1165s  events=2,371  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1181s  events=2,389  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1190s  events=2,400  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1195s  events=2,411  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1211s  events=2,428  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1220s  events=2,439  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1225s  events=2,450  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1246s  events=2,471  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1254s  events=2,484  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1255s  events=2,492  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1279s  events=2,514  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1284s  events=2,525  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1294s  events=2,543  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1309s  events=2,556  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1315s  events=2,568  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1324s  events=2,584  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1340s  events=2,599  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1353s  events=2,621  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1369s  events=2,634  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1375s  events=2,647  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1391s  events=2,666  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1400s  events=2,677  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1405s  events=2,690  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1429s  events=2,713  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1434s  events=2,722  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1443s  events=2,740  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1459s  events=2,753  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1464s  events=2,764  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1473s  events=2,780  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1489s  events=2,792  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1494s  events=2,802  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1511s  events=2,825  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1520s  events=2,835  suppressed=0
+  ⏳  Running ...  nodes_done=4/10  sim_t=1525s  events=2,846  suppressed=0
+  ⏹  Node done: 5/10 (50%)  |  sim_t=1529s  |  events=2,854
+  ⏹  Node done: 6/10 (60%)  |  sim_t=1530s  |  events=2,855
+  ⏹  Node done: 7/10 (70%)  |  sim_t=1539s  |  events=2,862
+  ⏹  Node done: 8/10 (80%)  |  sim_t=1546s  |  events=2,866
+  ⏹  Node done: 9/10 (90%)  |  sim_t=1554s  |  events=2,879
+  ⏳  Running ...  nodes_done=9/10  sim_t=1615s  events=2,911  suppressed=0
+  ⏳  Running ...  nodes_done=9/10  sim_t=1640s  events=2,914  suppressed=0
+  ⏳  Running ...  nodes_done=9/10  sim_t=1730s  events=2,935  suppressed=0
+  ⏳  Running ...  nodes_done=9/10  sim_t=1850s  events=2,963  suppressed=0
+  ⏳  Running ...  nodes_done=9/10  sim_t=1970s  events=2,991  suppressed=0
+  ⏹  Node done: 10/10 (100%)  |  sim_t=2035s  |  events=3,011
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+
+
+✅  GL-Baseline (seed 0) — cached, skipping.
+  ▶️   APSM Phase 2 (seed 0) — running...
+    Node 0: train=21946, val=2439
+    Node 1: train=21946, val=2439
+    Node 2: train=21946, val=2439
+    Node 3: train=21946, val=2439
+    Node 4: train=21946, val=2439
+    Node 5: train=21946, val=2439
+    Node 6: train=21946, val=2439
+    Node 7: train=21946, val=2439
+    Node 8: train=21946, val=2439
+    Node 9: train=21946, val=2439
+  ⏳  Running ...  nodes_done=0/10  sim_t=46s  events=16  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=50s  events=24  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=57s  events=41  suppressed=0
+  ⏳  Running ...  nodes_done=0/10  sim_t=64s  events=57  suppressed=2
+  ⏳  Running ...  nodes_done=0/10  sim_t=71s  events=72  suppressed=6
+  ⏳  Running ...  nodes_done=0/10  sim_t=79s  events=88  suppressed=11
+  ⏳  Running ...  nodes_done=0/10  sim_t=84s  events=110  suppressed=15
+  ⏳  Running ...  nodes_done=0/10  sim_t=93s  events=132  suppressed=24
+  ⏳  Running ...  nodes_done=0/10  sim_t=109s  events=153  suppressed=33
+  ⏳  Running ...  nodes_done=0/10  sim_t=114s  events=169  suppressed=37
+  ⏳  Running ...  nodes_done=0/10  sim_t=121s  events=186  suppressed=43
+  ⏳  Running ...  nodes_done=0/10  sim_t=134s  events=217  suppressed=56
+  ⏳  Running ...  nodes_done=0/10  sim_t=143s  events=239  suppressed=65
+  ⏳  Running ...  nodes_done=0/10  sim_t=157s  events=258  suppressed=72
+  ⏳  Running ...  nodes_done=0/10  sim_t=160s  events=265  suppressed=74
+  ⏳  Running ...  nodes_done=0/10  sim_t=171s  events=293  suppressed=83
+  ⏳  Running ...  nodes_done=0/10  sim_t=184s  events=322  suppressed=95
+  ⏳  Running ...  nodes_done=0/10  sim_t=193s  events=344  suppressed=103
+  ⏳  Running ...  nodes_done=0/10  sim_t=207s  events=365  suppressed=112
+  ⏳  Running ...  nodes_done=0/10  sim_t=209s  events=371  suppressed=114
+  ⏳  Running ...  nodes_done=0/10  sim_t=221s  events=399  suppressed=123
+  ⏳  Running ...  nodes_done=0/10  sim_t=226s  events=412  suppressed=130
+  ⏳  Running ...  nodes_done=0/10  sim_t=235s  events=437  suppressed=137
+  ⏳  Running ...  nodes_done=0/10  sim_t=257s  events=470  suppressed=151
+  ⏳  Running ...  nodes_done=0/10  sim_t=259s  events=476  suppressed=153
+  ⏳  Running ...  nodes_done=0/10  sim_t=264s  events=497  suppressed=158
+  ⏳  Running ...  nodes_done=0/10  sim_t=276s  events=520  suppressed=169
+  ⏳  Running ...  nodes_done=0/10  sim_t=284s  events=541  suppressed=176
+  ⏳  Running ...  nodes_done=0/10  sim_t=293s  events=563  suppressed=185
+  ⏳  Running ...  nodes_done=0/10  sim_t=307s  events=580  suppressed=191
+  ⏳  Running ...  nodes_done=0/10  sim_t=314s  events=597  suppressed=196
+  ⏳  Running ...  nodes_done=0/10  sim_t=321s  events=617  suppressed=204
+  ⏳  Running ...  nodes_done=0/10  sim_t=334s  events=647  suppressed=216
+  ⏳  Running ...  nodes_done=0/10  sim_t=343s  events=668  suppressed=224
+  ⏳  Running ...  nodes_done=0/10  sim_t=357s  events=688  suppressed=232
+  ⏳  Running ...  nodes_done=0/10  sim_t=359s  events=694  suppressed=234
+  ⏳  Running ...  nodes_done=0/10  sim_t=371s  events=721  suppressed=243
+  ⏳  Running ...  nodes_done=0/10  sim_t=378s  events=739  suppressed=251
+  ⏳  Running ...  nodes_done=0/10  sim_t=385s  events=759  suppressed=256
+  ⏳  Running ...  nodes_done=0/10  sim_t=407s  events=792  suppressed=271
+  ⏳  Running ...  nodes_done=0/10  sim_t=409s  events=800  suppressed=274
+  ⏳  Running ...  nodes_done=0/10  sim_t=421s  events=828  suppressed=283
+  ⏳  Running ...  nodes_done=0/10  sim_t=428s  events=845  suppressed=290
+  ⏳  Running ...  nodes_done=0/10  sim_t=434s  events=863  suppressed=296
+  ⏳  Running ...  nodes_done=0/10  sim_t=443s  events=885  suppressed=305
+  ⏳  Running ...  nodes_done=0/10  sim_t=457s  events=903  suppressed=312
+  ⏳  Running ...  nodes_done=0/10  sim_t=464s  events=923  suppressed=318
+  ⏳  Running ...  nodes_done=0/10  sim_t=471s  events=939  suppressed=324
+  ⏳  Running ...  nodes_done=0/10  sim_t=484s  events=967  suppressed=335
+  ⏳  Running ...  nodes_done=0/10  sim_t=493s  events=991  suppressed=345
+  ⏳  Running ...  nodes_done=0/10  sim_t=507s  events=1,008  suppressed=351
+  ⏳  Running ...  nodes_done=0/10  sim_t=509s  events=1,015  suppressed=353
+  ⏳  Running ...  nodes_done=0/10  sim_t=521s  events=1,044  suppressed=364
+  ⏳  Running ...  nodes_done=0/10  sim_t=526s  events=1,058  suppressed=370
+  ⏳  Running ...  nodes_done=0/10  sim_t=534s  events=1,078  suppressed=376
+  ⏳  Running ...  nodes_done=0/10  sim_t=543s  events=1,100  suppressed=385
+  ⏳  Running ...  nodes_done=0/10  sim_t=559s  events=1,120  suppressed=393
+  ⏳  Running ...  nodes_done=0/10  sim_t=564s  events=1,139  suppressed=398
+  ⏳  Running ...  nodes_done=0/10  sim_t=576s  events=1,163  suppressed=410
+  ⏳  Running ...  nodes_done=0/10  sim_t=584s  events=1,185  suppressed=416
+  ⏳  Running ...  nodes_done=0/10  sim_t=593s  events=1,207  suppressed=425
+  ⏳  Running ...  nodes_done=0/10  sim_t=609s  events=1,227  suppressed=433
+  ⏳  Running ...  nodes_done=0/10  sim_t=614s  events=1,241  suppressed=436
+  ⏳  Running ...  nodes_done=0/10  sim_t=621s  events=1,260  suppressed=443
+  ⏳  Running ...  nodes_done=0/10  sim_t=634s  events=1,290  suppressed=455
+  ⏳  Running ...  nodes_done=0/10  sim_t=643s  events=1,312  suppressed=464
+  ⏳  Running ...  nodes_done=0/10  sim_t=657s  events=1,331  suppressed=471
+  ⏳  Running ...  nodes_done=0/10  sim_t=659s  events=1,338  suppressed=474
+  ⏳  Running ...  nodes_done=0/10  sim_t=671s  events=1,366  suppressed=483
+  ⏳  Running ...  nodes_done=0/10  sim_t=676s  events=1,379  suppressed=490
+  ⏳  Running ...  nodes_done=0/10  sim_t=685s  events=1,403  suppressed=497
+  ⏳  Running ...  nodes_done=0/10  sim_t=707s  events=1,437  suppressed=511
+  ⏳  Running ...  nodes_done=0/10  sim_t=709s  events=1,445  suppressed=514
+  ⏳  Running ...  nodes_done=0/10  sim_t=721s  events=1,474  suppressed=524
+  ⏳  Running ...  nodes_done=0/10  sim_t=726s  events=1,487  suppressed=530
+  ⏳  Running ...  nodes_done=0/10  sim_t=734s  events=1,507  suppressed=536
+  ⏳  Running ...  nodes_done=0/10  sim_t=743s  events=1,526  suppressed=543
+  ⏳  Running ...  nodes_done=0/10  sim_t=757s  events=1,545  suppressed=551
+  ⏳  Running ...  nodes_done=0/10  sim_t=759s  events=1,553  suppressed=554
+  ⏳  Running ...  nodes_done=0/10  sim_t=771s  events=1,581  suppressed=563
+  ⏳  Running ...  nodes_done=0/10  sim_t=778s  events=1,598  suppressed=570
+  ⏳  Running ...  nodes_done=0/10  sim_t=785s  events=1,617  suppressed=576
+  ⏳  Running ...  nodes_done=0/10  sim_t=807s  events=1,652  suppressed=591
+  ⏳  Running ...  nodes_done=0/10  sim_t=809s  events=1,660  suppressed=594
+  ⏳  Running ...  nodes_done=0/10  sim_t=814s  events=1,679  suppressed=598
+  ⏳  Running ...  nodes_done=0/10  sim_t=826s  events=1,702  suppressed=609
+  ⏳  Running ...  nodes_done=0/10  sim_t=834s  events=1,724  suppressed=616
+  ⏳  Running ...  nodes_done=0/10  sim_t=843s  events=1,746  suppressed=625
+  ⏳  Running ...  nodes_done=0/10  sim_t=859s  events=1,767  suppressed=634
+  ⏳  Running ...  nodes_done=0/10  sim_t=860s  events=1,772  suppressed=635
+  ⏳  Running ...  nodes_done=0/10  sim_t=871s  events=1,797  suppressed=643
+  ⏳  Running ...  nodes_done=0/10  sim_t=876s  events=1,810  suppressed=650
+  ⏳  Running ...  nodes_done=0/10  sim_t=884s  events=1,831  suppressed=656
+  ⏳  Running ...  nodes_done=0/10  sim_t=893s  events=1,852  suppressed=664
+  ⏳  Running ...  nodes_done=0/10  sim_t=907s  events=1,872  suppressed=672
+  ⏳  Running ...  nodes_done=0/10  sim_t=914s  events=1,888  suppressed=676
+  ⏳  Running ...  nodes_done=0/10  sim_t=926s  events=1,917  suppressed=690
+  ⏳  Running ...  nodes_done=0/10  sim_t=934s  events=1,938  suppressed=696
+  ⏳  Running ...  nodes_done=0/10  sim_t=943s  events=1,959  suppressed=704
+  ⏳  Running ...  nodes_done=0/10  sim_t=957s  events=1,979  suppressed=712
+  ⏳  Running ...  nodes_done=0/10  sim_t=964s  events=1,997  suppressed=717
+  ⏳  Running ...  nodes_done=0/10  sim_t=976s  events=2,019  suppressed=728
+  ⏳  Running ...  nodes_done=0/10  sim_t=984s  events=2,045  suppressed=736
+  ⏳  Running ...  nodes_done=0/10  sim_t=993s  events=2,066  suppressed=743
+  ⏳  Running ...  nodes_done=0/10  sim_t=1007s  events=2,084  suppressed=750
+  ⏳  Running ...  nodes_done=0/10  sim_t=1014s  events=2,100  suppressed=754
+  ⏳  Running ...  nodes_done=0/10  sim_t=1016s  events=2,111  suppressed=757
+  ⏳  Running ...  nodes_done=0/10  sim_t=1028s  events=2,138  suppressed=769
+  ⏳  Running ...  nodes_done=0/10  sim_t=1034s  events=2,152  suppressed=773
+  ⏳  Running ...  nodes_done=0/10  sim_t=1043s  events=2,169  suppressed=778
+  ⏳  Running ...  nodes_done=0/10  sim_t=1057s  events=2,192  suppressed=787
+  ⏳  Running ...  nodes_done=0/10  sim_t=1059s  events=2,199  suppressed=789
+  ⏳  Running ...  nodes_done=0/10  sim_t=1064s  events=2,218  suppressed=795
+  ⏳  Running ...  nodes_done=0/10  sim_t=1078s  events=2,245  suppressed=807
+  ⏳  Running ...  nodes_done=0/10  sim_t=1084s  events=2,258  suppressed=809
+  ⏳  Running ...  nodes_done=0/10  sim_t=1093s  events=2,276  suppressed=814
+  ⏳  Running ...  nodes_done=0/10  sim_t=1101s  events=2,290  suppressed=818
+  ⏳  Running ...  nodes_done=0/10  sim_t=1109s  events=2,307  suppressed=823
+  ⏳  Running ...  nodes_done=0/10  sim_t=1114s  events=2,328  suppressed=830
+  ⏳  Running ...  nodes_done=0/10  sim_t=1128s  events=2,356  suppressed=841
+  ⏳  Running ...  nodes_done=0/10  sim_t=1138s  events=2,371  suppressed=845
+  ⏳  Running ...  nodes_done=0/10  sim_t=1145s  events=2,388  suppressed=850
+  ⏳  Running ...  nodes_done=0/10  sim_t=1151s  events=2,401  suppressed=853
+  ⏳  Running ...  nodes_done=0/10  sim_t=1157s  events=2,418  suppressed=858
+  ⏳  Running ...  nodes_done=0/10  sim_t=1164s  events=2,438  suppressed=865
+  ⏳  Running ...  nodes_done=0/10  sim_t=1168s  events=2,452  suppressed=870
+  ⏳  Running ...  nodes_done=0/10  sim_t=1184s  events=2,482  suppressed=881
+  ⏳  Running ...  nodes_done=0/10  sim_t=1195s  events=2,493  suppressed=885
+  ⏳  Running ...  nodes_done=0/10  sim_t=1198s  events=2,498  suppressed=886
+  ⏳  Running ...  nodes_done=0/10  sim_t=1207s  events=2,523  suppressed=889
+  ⏳  Running ...  nodes_done=0/10  sim_t=1209s  events=2,529  suppressed=891
+  ⏳  Running ...  nodes_done=0/10  sim_t=1214s  events=2,544  suppressed=894
+  ⏳  Running ...  nodes_done=0/10  sim_t=1228s  events=2,569  suppressed=906
+  ⏳  Running ...  nodes_done=0/10  sim_t=1234s  events=2,590  suppressed=909
+  ⏳  Running ...  nodes_done=0/10  sim_t=1245s  events=2,608  suppressed=915
+  ⏳  Running ...  nodes_done=0/10  sim_t=1257s  events=2,623  suppressed=919
+  ⏳  Running ...  nodes_done=0/10  sim_t=1260s  events=2,636  suppressed=922
+  ⏳  Running ...  nodes_done=0/10  sim_t=1278s  events=2,677  suppressed=936
+  ⏳  Running ...  nodes_done=0/10  sim_t=1284s  events=2,692  suppressed=940
+  ⏳  Running ...  nodes_done=0/10  sim_t=1295s  events=2,708  suppressed=944
+  ⏳  Running ...  nodes_done=0/10  sim_t=1301s  events=2,723  suppressed=948
+  ⏳  Running ...  nodes_done=0/10  sim_t=1307s  events=2,739  suppressed=953
+  ⏳  Running ...  nodes_done=0/10  sim_t=1314s  events=2,758  suppressed=960
+  ⏳  Running ...  nodes_done=0/10  sim_t=1328s  events=2,792  suppressed=976
+  ⏳  Running ...  nodes_done=0/10  sim_t=1334s  events=2,806  suppressed=979
+  ⏳  Running ...  nodes_done=0/10  sim_t=1346s  events=2,821  suppressed=985
+  ⏳  Running ...  nodes_done=0/10  sim_t=1357s  events=2,843  suppressed=988
+  ⏳  Running ...  nodes_done=0/10  sim_t=1359s  events=2,850  suppressed=990
+  ⏳  Running ...  nodes_done=0/10  sim_t=1368s  events=2,873  suppressed=997
+  ⏳  Running ...  nodes_done=0/10  sim_t=1376s  events=2,894  suppressed=1006
+  ⏳  Running ...  nodes_done=0/10  sim_t=1384s  events=2,915  suppressed=1011
+  ⏳  Running ...  nodes_done=0/10  sim_t=1395s  events=2,931  suppressed=1016
+  ⏳  Running ...  nodes_done=0/10  sim_t=1406s  events=2,946  suppressed=1020
+  ⏳  Running ...  nodes_done=0/10  sim_t=1407s  events=2,950  suppressed=1020
+  ⏳  Running ...  nodes_done=0/10  sim_t=1411s  events=2,962  suppressed=1024
+  ⏳  Running ...  nodes_done=0/10  sim_t=1418s  events=2,986  suppressed=1030
+  ⏳  Running ...  nodes_done=0/10  sim_t=1428s  events=3,007  suppressed=1039
+  ⏳  Running ...  nodes_done=0/10  sim_t=1436s  events=3,023  suppressed=1045
+  ⏳  Running ...  nodes_done=0/10  sim_t=1445s  events=3,041  suppressed=1051
+  ⏳  Running ...  nodes_done=0/10  sim_t=1457s  events=3,065  suppressed=1060
+  ⏳  Running ...  nodes_done=0/10  sim_t=1459s  events=3,070  suppressed=1061
+  ⏳  Running ...  nodes_done=0/10  sim_t=1464s  events=3,090  suppressed=1068
+  ⏳  Running ...  nodes_done=0/10  sim_t=1478s  events=3,117  suppressed=1078
+  ⏳  Running ...  nodes_done=0/10  sim_t=1486s  events=3,132  suppressed=1083
+  ⏳  Running ...  nodes_done=0/10  sim_t=1495s  events=3,150  suppressed=1089
+  ⏳  Running ...  nodes_done=0/10  sim_t=1499s  events=3,160  suppressed=1091
+  ⏳  Running ...  nodes_done=0/10  sim_t=1507s  events=3,181  suppressed=1096
+  ⏳  Running ...  nodes_done=0/10  sim_t=1514s  events=3,195  suppressed=1100
+  ⏳  Running ...  nodes_done=0/10  sim_t=1526s  events=3,219  suppressed=1108
+  ⏳  Running ...  nodes_done=0/10  sim_t=1531s  events=3,236  suppressed=1114
+  ⏳  Running ...  nodes_done=0/10  sim_t=1537s  events=3,252  suppressed=1120
+  ⏳  Running ...  nodes_done=0/10  sim_t=1545s  events=3,273  suppressed=1128
+  ⏳  Running ...  nodes_done=0/10  sim_t=1560s  events=3,297  suppressed=1134
+  ⏳  Running ...  nodes_done=0/10  sim_t=1568s  events=3,312  suppressed=1139
+  ⏳  Running ...  nodes_done=0/10  sim_t=1578s  events=3,329  suppressed=1144
+  ⏹  Node done: 1/10 (10%)  |  sim_t=1581s  |  events=3,340
+  ⏳  Running ...  nodes_done=1/10  sim_t=1587s  events=3,359  suppressed=1148
+  ⏳  Running ...  nodes_done=1/10  sim_t=1595s  events=3,376  suppressed=1153
+  ⏳  Running ...  nodes_done=1/10  sim_t=1609s  events=3,397  suppressed=1160
+  ⏳  Running ...  nodes_done=1/10  sim_t=1610s  events=3,400  suppressed=1161
+  ⏳  Running ...  nodes_done=1/10  sim_t=1618s  events=3,427  suppressed=1170
+  ⏹  Node done: 2/10 (20%)  |  sim_t=1623s  |  events=3,436
+  ⏳  Running ...  nodes_done=2/10  sim_t=1637s  events=3,456  suppressed=1185
+  ⏳  Running ...  nodes_done=2/10  sim_t=1640s  events=3,465  suppressed=1186
+  ⏳  Running ...  nodes_done=2/10  sim_t=1645s  events=3,480  suppressed=1189
+  ⏹  Node done: 3/10 (30%)  |  sim_t=1650s  |  events=3,484
+  ⏳  Running ...  nodes_done=3/10  sim_t=1659s  events=3,501  suppressed=1196
+  ⏳  Running ...  nodes_done=3/10  sim_t=1664s  events=3,515  suppressed=1201
+  ⏳  Running ...  nodes_done=3/10  sim_t=1684s  events=3,550  suppressed=1219
+  ⏹  Node done: 4/10 (40%)  |  sim_t=1692s  |  events=3,565
+  ⏹  Node done: 5/10 (50%)  |  sim_t=1692s  |  events=3,568
+  ⏹  Node done: 6/10 (60%)  |  sim_t=1700s  |  events=3,579
+  ⏳  Running ...  nodes_done=6/10  sim_t=1720s  events=3,610  suppressed=1242
+  ⏳  Running ...  nodes_done=6/10  sim_t=1745s  events=3,637  suppressed=1252
+  ⏳  Running ...  nodes_done=6/10  sim_t=1766s  events=3,667  suppressed=1265
+  ⏳  Running ...  nodes_done=6/10  sim_t=1795s  events=3,689  suppressed=1275
+  ⏳  Running ...  nodes_done=6/10  sim_t=1825s  events=3,721  suppressed=1289
+  ⏳  Running ...  nodes_done=6/10  sim_t=1834s  events=3,735  suppressed=1293
+  ⏳  Running ...  nodes_done=6/10  sim_t=1859s  events=3,763  suppressed=1305
+  ⏳  Running ...  nodes_done=6/10  sim_t=1884s  events=3,787  suppressed=1316
+  ⏳  Running ...  nodes_done=6/10  sim_t=1916s  events=3,824  suppressed=1332
+  ⏳  Running ...  nodes_done=6/10  sim_t=1934s  events=3,843  suppressed=1341
+  ⏳  Running ...  nodes_done=6/10  sim_t=1959s  events=3,872  suppressed=1353
+  ⏳  Running ...  nodes_done=6/10  sim_t=1984s  events=3,896  suppressed=1361
+  ⏳  Running ...  nodes_done=6/10  sim_t=2006s  events=3,920  suppressed=1369
+  ⏳  Running ...  nodes_done=6/10  sim_t=2035s  events=3,951  suppressed=1383
+  ⏹  Node done: 7/10 (70%)  |  sim_t=2050s  |  events=3,969
+  ⏳  Running ...  nodes_done=7/10  sim_t=2064s  events=3,986  suppressed=1395
+  ⏹  Node done: 8/10 (80%)  |  sim_t=2069s  |  events=3,991
+  ⏳  Running ...  nodes_done=8/10  sim_t=2119s  events=4,035  suppressed=1416
+  ⏹  Node done: 9/10 (90%)  |  sim_t=2131s  |  events=4,041
+  ⏳  Running ...  nodes_done=9/10  sim_t=2185s  events=4,078  suppressed=1435
+  ⏳  Running ...  nodes_done=9/10  sim_t=2299s  events=4,117  suppressed=1453
+  ⏳  Running ...  nodes_done=9/10  sim_t=2385s  events=4,147  suppressed=1466
+  ⏳  Running ...  nodes_done=9/10  sim_t=2479s  events=4,180  suppressed=1481
+  ⏹  Node done: 10/10 (100%)  |  sim_t=2540s  |  events=4,205
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+WARNING:absl:You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+  ✅  APSM done  (124.4 min)
+
+
+  ====================================================================
+   PHASE 2 FULL-RUN: GL-Baseline vs APSM Semantic Filter
+   Seeds=1  |  Updates=100  |  Epochs/round=3
+   APSM params: k=2.0, window=50, heartbeat=5
+====================================================================
+Metric                                    GL-Baseline           APSM
+--------------------------------------------------------------------
+Avg MSE (scaled)  mean±std                0.00582±0.0000    0.00545±0.0000
+Avg MSE (raw, m²)                                 542            507
+Avg RMSE (scaled)                             0.07571        0.07352
+MSE delta (%)                                       —         -6.34%
+Avg packets sent                                 1447           1254
+Avg packets suppressed                              —           1491
+Packet Reduction Ratio                              —          50.7%
+====================================================================
+
+  ✅ SUCCESS CRITERIA:
+  ✅  Packet reduction ≥ 40%  →  50.7%
+  ❌  MSE degradation ≤  5%  →  6.34%
+
+📈  Generating plots...
+  📊  graph1_bandwidth.png
+  📊  graph2_convergence.png
+  📊  graph3_semantic_surprise.png
+  📊  graph4_per_node_suppression.png
+  📊  graph5_mse_boxplot.png
+
+  💾  CSV:  /kaggle/working/APSM-MTP/results/phase2_full/phase2_comparison_full.csv
+  💾  JSON: /kaggle/working/APSM-MTP/results/phase2_full/phase2_summary.json
+
+🎉  All done!  Total wall-clock time: 125.1 min
+📁  Results saved to: /kaggle/working/APSM-MTP/results/phase2_full

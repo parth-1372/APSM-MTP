@@ -1,0 +1,21 @@
+{
+  "run_timestamp": "2026-06-30T08:02:09.682463",
+  "config": {
+    "n_nodes": 10,
+    "fixed_updates": 100,
+    "epochs_per_update": 3,
+    "n_seeds": 1,
+    "max_samples": null,
+    "semantic_k": 2.0,
+    "semantic_window": 50,
+    "semantic_heartbeat": 5
+  },
+  "results": {
+    "packet_reduction_pct": 53.64,
+    "mse_delta_pct": 0.69,
+    "baseline_mse_mean": 0.009269,
+    "apsm_mse_mean": 0.009332,
+    "baseline_mse_std": 0.0,
+    "apsm_mse_std": 0.0
+  }
+}
