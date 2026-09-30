@@ -42,9 +42,12 @@ echo "(-8.6338, -8.5862, 41.1369, 41.1690)" > assets/BBox_Porto.txt
 To run a scalability test for a specific number of nodes (for example, `50`), follow these three steps:
 
 ### A. Generate the Network Graph
-1. Open `src/1_network_generation.ipynb` in your editor/Jupyter.
-2. Change the variable to `n_nodes = 50`.
-3. Run all cells to generate the Harvesine graphs.
+1. Open `src/1_network_generation.py` in your code editor.
+2. Change the variable near the top to `n_nodes = 50`.
+3. Run the script from the terminal:
+```bash
+PYTHONPATH=src python src/1_network_generation.py
+```
 
 ### B. Generate the Node Datasets
 1. Open `src/2_dataset_generation.py` in your editor.
