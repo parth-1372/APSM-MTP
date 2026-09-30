@@ -20,17 +20,17 @@ poetry install --no-interaction
 pip install category-encoders fastparquet pyarrow
 ```
 
-## 2. Download and Extract the Dataset
+## 2. Prepare the Raw Dataset
 
-You must download the raw Porto taxi dataset and prepare the network bounding box before running any scripts.
+Because the Porto Taxi Dataset (`taxi_porto.csv`) is 1.9 GB, it is too large for GitHub. On your new machine, you must manually provide this data:
+
+1. Copy your existing `assets/` folder from your current machine to the root of the new project directory. (It must contain `taxi_porto.csv` and `porto_cells.parquet`).
+2. Alternatively, download the dataset from Kaggle (`crawford/taxi-trajectory`), rename the main CSV to `taxi_porto.csv`, and place it inside the `assets/` folder.
 
 ```bash
-# Download the Porto taxi dataset from Kaggle
-python download_and_extract.py
-
-# Ensure data is moved to the correct root folder
-mkdir -p data
-cp -r src/data/* data/ 2>/dev/null || true
+# Ensure the data output directories exist
+mkdir -p data/datasets
+mkdir -p data/networks
 
 # Re-create the bounding box file required by the network generator
 mkdir -p assets
