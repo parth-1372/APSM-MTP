@@ -87,7 +87,7 @@ SEMANTIC_HEARTBEAT = 5     # forced send after this many consecutive suppression
 # ──────────────────────────────────────────────────────────────────────
 DATASETS_FOLDER = ROOT_DIR / f"data/datasets/porto_{N_NODES}n_{K}k"
 NETWORKS_FOLDER = ROOT_DIR / f"data/networks/porto_{N_NODES}n_{K}k"
-RESULTS_DIR     = ROOT_DIR / "results/phase2_full"
+RESULTS_DIR     = ROOT_DIR / f"results/phase2_full_{N_NODES}n"
 
 
 # ──────────────────────────────────────────────────────────────────────
