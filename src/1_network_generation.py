@@ -13,10 +13,12 @@ n_simulations = 10
 n_nodes = 10
 k= 3
 
-cell_dataset = pd.read_parquet("assets/porto_cells.parquet")
+ROOT_DIR = Path(__file__).resolve().parent.parent
+
+cell_dataset = pd.read_parquet(ROOT_DIR / "assets/porto_cells.parquet")
 output = f"porto_{n_nodes}n_{k}k"
-bbox_img = "assets/BBox_Porto.png"
-bbox_boundaries = "assets/BBox_Porto.txt"
+bbox_img = ROOT_DIR / "assets/BBox_Porto.png"
+bbox_boundaries = ROOT_DIR / "assets/BBox_Porto.txt"
 
 def build_network(
     cell_dataset: pd.DataFrame, num_towers: int, k_edge_connectivity: int
@@ -57,7 +59,7 @@ def build_network(
 
 if __name__ == "__main__":
     for i in range(n_simulations):
-        folder_path = Path(f"data/networks/{output}/{i}")
+        folder_path = ROOT_DIR / f"data/networks/{output}/{i}"
         folder_path.mkdir(parents=True, exist_ok=True)
 
         network, towers = build_network(cell_dataset, num_towers=n_nodes, k_edge_connectivity=k)

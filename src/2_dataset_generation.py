@@ -30,8 +30,10 @@ n_small_dataset_nodes = 0
 
 small_dataset_suffix = f"_{n_small_dataset_nodes}sd" if n_small_dataset_nodes > 0 else ""
 
-base_dataset_folder = Path(f"data/datasets/porto_{n_nodes}n_3k{small_dataset_suffix}")
-base_network_folder = Path(f"data/networks/porto_{n_nodes}n_3k")
+ROOT_DIR = Path(__file__).resolve().parent.parent
+
+base_dataset_folder = ROOT_DIR / f"data/datasets/porto_{n_nodes}n_3k{small_dataset_suffix}"
+base_network_folder = ROOT_DIR / f"data/networks/porto_{n_nodes}n_3k"
 
 
 # In[5]:
@@ -47,7 +49,7 @@ freq="15min"
 
 
 # margins (longitude and latitude) of the portion of the city considered for the experiment
-with open("assets/BBox_Porto.txt") as f:
+with open(ROOT_DIR / "assets/BBox_Porto.txt") as f:
     (LON_MIN, LON_MAX, LAT_MIN, LAT_MAX) = eval(f.readline())
 
 LON_CENTRE = (LON_MIN + LON_MAX) / 2
