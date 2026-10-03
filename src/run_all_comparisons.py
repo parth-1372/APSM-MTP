@@ -79,10 +79,6 @@ else:
 
 
 def _gpu_for_seed(seed: int, n_gpus: int) -> str:
-    """Round-robin assignment but GPU-0 (16 GB) gets priority for heavier seeds.
-    With 3 seeds and 2 GPUs:  seed0→GPU0, seed1→GPU1, seed2→GPU0"""
-    if n_gpus == 0:
-        return ""   # CPU-only — don’t set CUDA_VISIBLE_DEVICES
     return str(seed % n_gpus)
 
 from experiment_config import (
