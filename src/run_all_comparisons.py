@@ -260,9 +260,22 @@ def print_comparison_table(b_runs: list, a_runs: list):
     print(f"{'Avg MSE (raw, m²)':<38} {b_mse_mu*SCALE:>14.0f} {a_mse_mu*SCALE:>14.0f}")
     print(f"{'Avg RMSE (scaled)':<38} {b_rmse_mu:>14.5f} {a_rmse_mu:>14.5f}")
     print(f"{'MSE delta (%)':<38} {'—':>14} {mse_delta_pct:>+13.2f}%")
+    # Energy calculations based on Table X of the Base Paper
+    energy_send_j = 0.07    # Joules to SendModel
+    energy_recv_j = 20.74   # Joules to ReceiveModel
+    energy_fit_j = 1.93     # Joules for Model fit
+    
+    # Each suppressed packet saves 1 Send, and K Recvs + K Fits on neighbor nodes
+    energy_saved_per_packet = energy_send_j + (K * (energy_recv_j + energy_fit_j))
+    total_energy_saved_j = a_supp_mu * energy_saved_per_packet
+    total_energy_saved_kwh = total_energy_saved_j / 3.6e6  # Convert Joules to kWh
+
     print(f"{'Avg packets sent':<38} {b_sent_mu:>14.0f} {a_sent_mu:>14.0f}")
     print(f"{'Avg packets suppressed':<38} {'—':>14} {a_supp_mu:>14.0f}")
     print(f"{'Packet Reduction Ratio':<38} {'—':>14} {packet_red_pct:>13.1f}%")
+    print("-" * W)
+    print(f"{'Estimated Energy Saved (Joules)':<38} {'—':>14} {total_energy_saved_j:>14.1f}")
+    print(f"{'Estimated Energy Saved (Wh)':<38} {'—':>14} {total_energy_saved_kwh * 1000:>14.4f}")
     print("=" * W)
 
     print("\n  ✅ SUCCESS CRITERIA:")
@@ -271,7 +284,7 @@ def print_comparison_table(b_runs: list, a_runs: list):
     print(f"  {'✅' if c1 else '❌'}  Packet reduction ≥ 40%  →  {packet_red_pct:.1f}%")
     print(f"  {'✅' if c2 else '❌'}  MSE degradation ≤  5%  →  {abs(mse_delta_pct):.2f}%")
     print()
-    return packet_red_pct, mse_delta_pct
+    return packet_red_pct, mse_delta_pct, total_energy_saved_j, total_energy_saved_kwh
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -417,7 +430,7 @@ def plot_results(b_runs: list, a_runs: list, out_dir: Path):
 # Save CSV + JSON
 # ──────────────────────────────────────────────────────────────────────
 
-def save_results(b_runs: list, a_runs: list, out_dir: Path, pkt_red: float, mse_delta: float):
+def save_results(b_runs: list, a_runs: list, out_dir: Path, pkt_red: float, mse_delta: float, energy_j: float, energy_kwh: float):
     out_dir.mkdir(parents=True, exist_ok=True)
     SCALE = 305 ** 2
 
@@ -452,6 +465,8 @@ def save_results(b_runs: list, a_runs: list, out_dir: Path, pkt_red: float, mse_
             "apsm_mse_mean":     round(float(np.mean([r["avg_mse"] for r in a_runs])), 6),
             "baseline_mse_std":  round(float(np.std([r["avg_mse"] for r in b_runs])), 6),
             "apsm_mse_std":      round(float(np.std([r["avg_mse"] for r in a_runs])), 6),
+            "energy_saved_joules": round(energy_j, 2),
+            "energy_saved_wh": round(energy_kwh * 1000, 4)
         }
     }
     json_path = out_dir / "phase2_summary.json"
@@ -597,14 +612,14 @@ def main():
         sys.exit(1)
 
     # ── Final aggregated table ─────────────────────────────────────
-    pkt_red, mse_delta = print_comparison_table(baseline_runs, apsm_runs)
+    pkt_red, mse_delta, energy_j, energy_kwh = print_comparison_table(baseline_runs, apsm_runs)
 
     # ── Plots ──────────────────────────────────────────────────────
     print("📈  Generating plots...")
     plot_results(baseline_runs, apsm_runs, RESULTS_DIR)
 
     # ── Save CSVs / JSON ───────────────────────────────────────────
-    save_results(baseline_runs, apsm_runs, RESULTS_DIR, pkt_red, mse_delta)
+    save_results(baseline_runs, apsm_runs, RESULTS_DIR, pkt_red, mse_delta, energy_j, energy_kwh)
 
     total_elapsed = (time.time() - total_start) / 60
     print(f"\n🎉  All done!  Total wall-clock time: {total_elapsed:.1f} min")
