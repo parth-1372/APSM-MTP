@@ -35,7 +35,10 @@ N_SMALL_DATASET_NODES = 0
 # ──────────────────────────────────────────────────────────────────────
 # Number of independent runs to perform (to average out geographical luck).
 # Replaces the hardcoded loop in run_all_comparisons.
-N_SEEDS = 3
+N_SEEDS = 1
+
+# Set to True to run seeds in parallel across CPU/GPU, or False to run sequentially (saves RAM).
+PARALLEL_SEEDS = False
 
 # Number of total gossip rounds each node will execute.
 # Must be greater than SEMANTIC_WINDOW (50) for the filter to engage.

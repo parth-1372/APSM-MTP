@@ -92,6 +92,7 @@ from experiment_config import (
     FIXED_UPDATES,
     EPOCHS_PER_UPDATE,
     N_SEEDS,
+    PARALLEL_SEEDS,
     SEMANTIC_K,
     SEMANTIC_WINDOW,
     SEMANTIC_HEARTBEAT
@@ -564,7 +565,9 @@ def main():
     baseline_runs = [None] * N_SEEDS
     apsm_runs     = [None] * N_SEEDS
 
-    with concurrent.futures.ProcessPoolExecutor(max_workers=min(N_SEEDS, 4)) as executor:
+    max_workers = min(N_SEEDS, 4) if PARALLEL_SEEDS else 1
+
+    with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
         n_gpus = len(_GPUS)
         futures = {
             executor.submit(run_seed, seed, _gpu_for_seed(seed, n_gpus)): seed
