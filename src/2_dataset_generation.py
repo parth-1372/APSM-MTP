@@ -20,13 +20,23 @@ from scipy.interpolate import Akima1DInterpolator
 from utils.data import prepare_dataset_for_training
 
 
+from experiment_config import (
+    GLOBAL_SEED,
+    N_SIMULATIONS,
+    N_NODES,
+    N_SMALL_DATASET_NODES,
+)
+
 # In[4]:
+
 
 
 n_functions = 1
 timesteps_in = 4
-n_nodes = 10
-n_small_dataset_nodes = 0
+n_nodes = N_NODES
+n_small_dataset_nodes = N_SMALL_DATASET_NODES
+
+np.random.seed(GLOBAL_SEED)
 
 small_dataset_suffix = f"_{n_small_dataset_nodes}sd" if n_small_dataset_nodes > 0 else ""
 
@@ -359,7 +369,7 @@ def encode_time(df: pd.DataFrame) -> pd.DataFrame:
 # In[17]:
 
 
-for i in range(10):
+for i in range(N_SIMULATIONS):
     dataset_folder = Path(base_dataset_folder / str(i))
     dataset_folder.mkdir(parents=True, exist_ok=True)
 

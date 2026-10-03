@@ -6,12 +6,18 @@ from matplotlib import pyplot as plt
 
 from utils.geo import haversine_distance
 
-seed = 99
-np.random.seed(seed)
+from experiment_config import (
+    GLOBAL_SEED,
+    N_SIMULATIONS,
+    N_NODES,
+    K_EDGE_CONNECTIVITY
+)
 
-n_simulations = 10
-n_nodes = 10
-k= 3
+np.random.seed(GLOBAL_SEED)
+
+n_simulations = N_SIMULATIONS
+n_nodes = N_NODES
+k = K_EDGE_CONNECTIVITY
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 

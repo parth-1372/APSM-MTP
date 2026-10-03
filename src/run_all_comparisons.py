@@ -21,6 +21,7 @@ import json
 import os
 import sys
 import time
+import concurrent.futures
 import functools
 import datetime
 import gc
@@ -42,13 +43,23 @@ from utils.gossip_training import get_node_dataset, round_trip_fn, run_simulatio
 from utils.model_creators import create_LSTM
 
 # ──────────────────────────────────────────────────────────────────────
-# TensorFlow / GPU setup
+# TensorFlow / CPU+GPU setup — runs at import time in the MAIN process
 # ──────────────────────────────────────────────────────────────────────
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"   # silence TF info spam
+# Use ALL available CPU cores for both inter-op and intra-op parallelism.
+# Without this, TF defaults to 1-2 threads on Windows, causing ~5% CPU usage.
+import multiprocessing as _mp
+_N_CPUS = _mp.cpu_count()   # 24 on your i9-13950HX
+os.environ["OMP_NUM_THREADS"]        = str(_N_CPUS)
+os.environ["TF_NUM_INTRAOP_THREADS"] = str(_N_CPUS)
+os.environ["TF_NUM_INTEROP_THREADS"] = str(_N_CPUS)
 
 import tensorflow as tf
-import tensorflow.config          # explicit import required by type checker
+import tensorflow.config
 import tensorflow.config.experimental
+
+tf.config.threading.set_intra_op_parallelism_threads(_N_CPUS)
+tf.config.threading.set_inter_op_parallelism_threads(_N_CPUS)
 
 gpus = tf.config.list_physical_devices("GPU")
 if gpus:
@@ -56,33 +67,19 @@ if gpus:
         tf.config.experimental.set_memory_growth(gpu, True)
     print(f"🖥️  GPU(s) detected: {[g.name for g in gpus]}")
 else:
-    print("⚠️  No GPU detected — running on CPU (will be slow)")
+    print(f"⚠️  No GPU detected — running on CPU with {_N_CPUS} threads")
 
-# ──────────────────────────────────────────────────────────────────────
-# ★ FULL-RUN CONFIGURATION — Edit these for your experiment
-# ──────────────────────────────────────────────────────────────────────
-N_NODES        = 10       # Number of gossip nodes
-K              = 3        # Number of nearest neighbours in the graph
-
-# Dataset: None = use the FULL dataset (all samples per node)
-# Set to an integer (e.g. 500) only to do a quick sanity check
-MAX_SAMPLES    = None     # ← None means FULL DATA
-
-# Training rounds: how many gossip updates each node performs
-# Must be > semantic_window (50) to let the filter fully engage
-# Recommended: 100 for paper-quality results
-FIXED_UPDATES  = 100      # gossip rounds per node
-
-# Epochs per gossip round (more = better convergence per round)
-EPOCHS_PER_UPDATE = 3
-
-# Number of independent seeds for statistical validity
-N_SEEDS        = 3        # produces mean ± std in the final table
-
-# APSM Semantic Filter hyper-parameters (also settable in config.json)
-SEMANTIC_K         = 2.0   # τ(t) = K · σ(ε)   — 95 % CI band
-SEMANTIC_WINDOW    = 50    # sliding window length N
-SEMANTIC_HEARTBEAT = 5     # forced send after this many consecutive suppressions
+from experiment_config import (
+    N_NODES,
+    K_EDGE_CONNECTIVITY as K,
+    MAX_SAMPLES,
+    FIXED_UPDATES,
+    EPOCHS_PER_UPDATE,
+    N_SEEDS,
+    SEMANTIC_K,
+    SEMANTIC_WINDOW,
+    SEMANTIC_HEARTBEAT
+)
 
 # ──────────────────────────────────────────────────────────────────────
 DATASETS_FOLDER = ROOT_DIR / f"data/datasets/porto_{N_NODES}n_{K}k"
@@ -456,6 +453,78 @@ def save_results(b_runs: list, a_runs: list, out_dir: Path, pkt_red: float, mse_
 # Main
 # ──────────────────────────────────────────────────────────────────────
 
+
+def run_seed(seed: int) -> tuple[dict, dict]:
+    # ── Subprocess TF + CPU thread setup ─────────────────────────────────
+    # Each spawned process must configure TF independently.
+    import os as _os
+    import sys as _sys
+    import gc
+    import multiprocessing as _mp
+    from pathlib import Path
+
+    # Ensure src/ is on PYTHONPATH inside the subprocess
+    _src = str(Path(__file__).resolve().parent)
+    if _src not in _sys.path:
+        _sys.path.insert(0, _src)
+
+    _n = _mp.cpu_count()
+    _os.environ["OMP_NUM_THREADS"]        = str(_n)
+    _os.environ["TF_NUM_INTRAOP_THREADS"] = str(_n)
+    _os.environ["TF_NUM_INTEROP_THREADS"] = str(_n)
+
+    import tensorflow as tf
+    tf.config.threading.set_intra_op_parallelism_threads(_n)
+    tf.config.threading.set_inter_op_parallelism_threads(_n)
+    gpus = tf.config.list_physical_devices("GPU")
+    if gpus:
+        try:
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+        except RuntimeError:
+            pass
+
+    seed_start = time.time()
+    print(f"\n{'━'*55}\n  SEED {seed + 1}/{N_SEEDS} (PID {os.getpid()}, {_n} CPU threads)\n{'━'*55}")
+
+
+    # ── GL-Baseline ────────────────────────────────────────────
+    b_workspace = str(SRC_DIR / f"experiments/gl_baseline_seed{seed}")
+    b_hist_path = Path(b_workspace) / "0" / "history.json"
+
+    if b_hist_path.exists():
+        print(f"  ✅  GL-Baseline (seed {seed}) — cached, skipping.")
+    else:
+        print(f"  ▶️   GL-Baseline (seed {seed}) — running...")
+        b_hist_path = run_one_simulation(b_workspace, seed, is_baseline=True)
+        elapsed = time.time() - seed_start
+        print(f"  ✅  GL-Baseline (seed {seed}) done  ({elapsed/60:.1f} min)")
+
+    b_metrics = extract_metrics(b_hist_path)
+
+    tf.keras.backend.clear_session()
+    gc.collect()
+
+    # ── APSM ────────────────────────────────────────────────────
+    a_workspace = str(SRC_DIR / f"experiments/apsm_phase2_seed{seed}")
+    a_hist_path = Path(a_workspace) / "0" / "history.json"
+
+    a_start = time.time()
+    if a_hist_path.exists():
+        print(f"  ✅  APSM Phase 2 (seed {seed}) — cached, skipping.")
+    else:
+        print(f"  ▶️   APSM Phase 2 (seed {seed}) — running...")
+        a_hist_path = run_one_simulation(a_workspace, seed, is_baseline=False)
+        elapsed = time.time() - a_start
+        print(f"  ✅  APSM (seed {seed}) done  ({elapsed/60:.1f} min)")
+
+    a_metrics = extract_metrics(a_hist_path)
+
+    tf.keras.backend.clear_session()
+    gc.collect()
+
+    return b_metrics, a_metrics
+
 def main():
     if not DATASETS_FOLDER.exists() or not NETWORKS_FOLDER.exists():
         print(f"❌  Data not found at: {DATASETS_FOLDER}")
@@ -471,61 +540,37 @@ def main():
     print(f"  MAX_SAMPLES={'FULL DATA' if MAX_SAMPLES is None else MAX_SAMPLES}")
     print("=" * 60 + "\n")
 
-    baseline_runs = []
-    apsm_runs     = []
+    baseline_runs = [None] * N_SEEDS
+    apsm_runs     = [None] * N_SEEDS
 
-    for seed in range(N_SEEDS):
-        seed_start = time.time()
-        print(f"\n{'━'*55}")
-        print(f"  SEED {seed + 1}/{N_SEEDS}")
-        print(f"{'━'*55}")
+    with concurrent.futures.ProcessPoolExecutor(max_workers=min(N_SEEDS, 4)) as executor:
+        futures = {executor.submit(run_seed, seed): seed for seed in range(N_SEEDS)}
+        for future in concurrent.futures.as_completed(futures):
+            seed = futures[future]
+            try:
+                b_metrics, a_metrics = future.result()
+                baseline_runs[seed] = b_metrics
+                apsm_runs[seed] = a_metrics
+                
+                # Progress snapshot
+                total = b_metrics["total_sent"] + a_metrics["total_suppressed"]
+                pr_now = (a_metrics["total_suppressed"] / total * 100) if total > 0 else 0
+                print(f"\n  📊  Seed {seed} snapshot:")
+                print(f"      Baseline MSE = {b_metrics['avg_mse']:.5f}  |  APSM MSE = {a_metrics['avg_mse']:.5f}")
+                print(f"      Packets sent: baseline={b_metrics['total_sent']}, apsm={a_metrics['total_sent']}")
+                print(f"      Suppressed: {a_metrics['total_suppressed']}  →  {pr_now:.1f}% reduction")
+            except Exception as e:
+                import traceback
+                print(f"❌  Seed {seed} failed with error: {e}")
+                traceback.print_exc()
 
-        # ── GL-Baseline ────────────────────────────────────────────
-        b_workspace = str(SRC_DIR / f"experiments/gl_baseline_seed{seed}")
-        b_hist_path = Path(b_workspace) / "0" / "history.json"
+    # Remove Nones if failures occurred
+    baseline_runs = [r for r in baseline_runs if r is not None]
+    apsm_runs     = [r for r in apsm_runs if r is not None]
 
-        if b_hist_path.exists():
-            print(f"  ✅  GL-Baseline (seed {seed}) — cached, skipping.")
-        else:
-            print(f"  ▶️   GL-Baseline (seed {seed}) — running...")
-            b_hist_path = run_one_simulation(b_workspace, seed, is_baseline=True)
-            elapsed = time.time() - seed_start
-            print(f"  ✅  GL-Baseline done  ({elapsed/60:.1f} min)")
-
-        baseline_runs.append(extract_metrics(b_hist_path))
-
-        # Clear memory before starting APSM
-        tf.keras.backend.clear_session()
-        gc.collect()
-
-        # ── APSM ────────────────────────────────────────────────────
-        a_workspace = str(SRC_DIR / f"experiments/apsm_phase2_seed{seed}")
-        a_hist_path = Path(a_workspace) / "0" / "history.json"
-
-        a_start = time.time()
-        if a_hist_path.exists():
-            print(f"  ✅  APSM Phase 2 (seed {seed}) — cached, skipping.")
-        else:
-            print(f"  ▶️   APSM Phase 2 (seed {seed}) — running...")
-            a_hist_path = run_one_simulation(a_workspace, seed, is_baseline=False)
-            elapsed = time.time() - a_start
-            print(f"  ✅  APSM done  ({elapsed/60:.1f} min)")
-
-        apsm_runs.append(extract_metrics(a_hist_path))
-
-        # Progress snapshot after each seed
-        b = baseline_runs[-1]
-        a = apsm_runs[-1]
-        total  = b["total_sent"] + a["total_suppressed"]
-        pr_now = (a["total_suppressed"] / total * 100) if total > 0 else 0
-        print(f"\n  📊  Seed {seed} snapshot:")
-        print(f"      Baseline MSE = {b['avg_mse']:.5f}  |  APSM MSE = {a['avg_mse']:.5f}")
-        print(f"      Packets sent: baseline={b['total_sent']}, apsm={a['total_sent']}")
-        print(f"      Suppressed: {a['total_suppressed']}  →  {pr_now:.1f}% reduction")
-
-        # Clear memory before starting the next seed
-        tf.keras.backend.clear_session()
-        gc.collect()
+    if not baseline_runs:
+        print("❌ All seeds failed.")
+        sys.exit(1)
 
     # ── Final aggregated table ─────────────────────────────────────
     pkt_red, mse_delta = print_comparison_table(baseline_runs, apsm_runs)
@@ -541,6 +586,8 @@ def main():
     print(f"\n🎉  All done!  Total wall-clock time: {total_elapsed:.1f} min")
     print(f"📁  Results saved to: {RESULTS_DIR.resolve()}\n")
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
+    # Fix for multiprocessing in windows
+    import multiprocessing
+    multiprocessing.freeze_support()
     main()
