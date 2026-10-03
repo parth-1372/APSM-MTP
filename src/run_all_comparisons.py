@@ -47,9 +47,8 @@ from utils.model_creators import create_LSTM
 # ──────────────────────────────────────────────────────────────────────
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"   # silence TF info spam
 # Use ALL available CPU cores for both inter-op and intra-op parallelism.
-# Without this, TF defaults to 1-2 threads on Windows, causing ~5% CPU usage.
 import multiprocessing as _mp
-_N_CPUS = _mp.cpu_count()   # 24 on your i9-13950HX
+_N_CPUS = _mp.cpu_count()   # 24 on i9-13950HX
 os.environ["OMP_NUM_THREADS"]        = str(_N_CPUS)
 os.environ["TF_NUM_INTRAOP_THREADS"] = str(_N_CPUS)
 os.environ["TF_NUM_INTEROP_THREADS"] = str(_N_CPUS)
@@ -61,13 +60,30 @@ import tensorflow.config.experimental
 tf.config.threading.set_intra_op_parallelism_threads(_N_CPUS)
 tf.config.threading.set_inter_op_parallelism_threads(_N_CPUS)
 
-gpus = tf.config.list_physical_devices("GPU")
-if gpus:
-    for gpu in gpus:
-        tf.config.experimental.set_memory_growth(gpu, True)
-    print(f"🖥️  GPU(s) detected: {[g.name for g in gpus]}")
+# ── GPU discovery ─────────────────────────────────────────────────────────────
+_GPUS = tf.config.list_physical_devices("GPU")
+if _GPUS:
+    for _gpu in _GPUS:
+        try:
+            tf.config.experimental.set_memory_growth(_gpu, True)
+        except RuntimeError:
+            pass
+    print(f"🖥️  {len(_GPUS)} GPU(s) detected:")
+    for _i, _g in enumerate(_GPUS):
+        print(f"      GPU {_i}: {_g.name}")
+    if len(_GPUS) >= 2:
+        print("      GPU 0 → 16 GB  (seeds 0, 2)")
+        print("      GPU 1 →  6 GB  RTX 1000 Ada  (seed 1)")
 else:
     print(f"⚠️  No GPU detected — running on CPU with {_N_CPUS} threads")
+
+
+def _gpu_for_seed(seed: int, n_gpus: int) -> str:
+    """Round-robin assignment but GPU-0 (16 GB) gets priority for heavier seeds.
+    With 3 seeds and 2 GPUs:  seed0→GPU0, seed1→GPU1, seed2→GPU0"""
+    if n_gpus == 0:
+        return ""   # CPU-only — don’t set CUDA_VISIBLE_DEVICES
+    return str(seed % n_gpus)
 
 from experiment_config import (
     N_NODES,
@@ -454,16 +470,20 @@ def save_results(b_runs: list, a_runs: list, out_dir: Path, pkt_red: float, mse_
 # ──────────────────────────────────────────────────────────────────────
 
 
-def run_seed(seed: int) -> tuple[dict, dict]:
-    # ── Subprocess TF + CPU thread setup ─────────────────────────────────
-    # Each spawned process must configure TF independently.
+def run_seed(seed: int, gpu_id: str = "") -> tuple[dict, dict]:
+    # ── Subprocess: pin GPU BEFORE importing TF, then configure threads ───
     import os as _os
     import sys as _sys
     import gc
     import multiprocessing as _mp
     from pathlib import Path
 
-    # Ensure src/ is on PYTHONPATH inside the subprocess
+    # MUST be set before TF import so CUDA sees only the assigned device.
+    # gpu_id="" means CPU-only (CUDA not installed yet).
+    if gpu_id != "":
+        _os.environ["CUDA_VISIBLE_DEVICES"] = gpu_id
+    _os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+
     _src = str(Path(__file__).resolve().parent)
     if _src not in _sys.path:
         _sys.path.insert(0, _src)
@@ -476,7 +496,9 @@ def run_seed(seed: int) -> tuple[dict, dict]:
     import tensorflow as tf
     tf.config.threading.set_intra_op_parallelism_threads(_n)
     tf.config.threading.set_inter_op_parallelism_threads(_n)
+
     gpus = tf.config.list_physical_devices("GPU")
+    gpu_label = f"GPU {gpu_id} ({gpus[0].name})" if gpus else "CPU"
     if gpus:
         try:
             for gpu in gpus:
@@ -485,8 +507,7 @@ def run_seed(seed: int) -> tuple[dict, dict]:
             pass
 
     seed_start = time.time()
-    print(f"\n{'━'*55}\n  SEED {seed + 1}/{N_SEEDS} (PID {os.getpid()}, {_n} CPU threads)\n{'━'*55}")
-
+    print(f"\n{'━'*55}\n  SEED {seed + 1}/{N_SEEDS}  →  {gpu_label}  |  PID {os.getpid()}\n{'━'*55}")
 
     # ── GL-Baseline ────────────────────────────────────────────
     b_workspace = str(SRC_DIR / f"experiments/gl_baseline_seed{seed}")
@@ -495,7 +516,7 @@ def run_seed(seed: int) -> tuple[dict, dict]:
     if b_hist_path.exists():
         print(f"  ✅  GL-Baseline (seed {seed}) — cached, skipping.")
     else:
-        print(f"  ▶️   GL-Baseline (seed {seed}) — running...")
+        print(f"  ▶️   GL-Baseline (seed {seed}) — running on {gpu_label}...")
         b_hist_path = run_one_simulation(b_workspace, seed, is_baseline=True)
         elapsed = time.time() - seed_start
         print(f"  ✅  GL-Baseline (seed {seed}) done  ({elapsed/60:.1f} min)")
@@ -513,7 +534,7 @@ def run_seed(seed: int) -> tuple[dict, dict]:
     if a_hist_path.exists():
         print(f"  ✅  APSM Phase 2 (seed {seed}) — cached, skipping.")
     else:
-        print(f"  ▶️   APSM Phase 2 (seed {seed}) — running...")
+        print(f"  ▶️   APSM Phase 2 (seed {seed}) — running on {gpu_label}...")
         a_hist_path = run_one_simulation(a_workspace, seed, is_baseline=False)
         elapsed = time.time() - a_start
         print(f"  ✅  APSM (seed {seed}) done  ({elapsed/60:.1f} min)")
@@ -544,7 +565,11 @@ def main():
     apsm_runs     = [None] * N_SEEDS
 
     with concurrent.futures.ProcessPoolExecutor(max_workers=min(N_SEEDS, 4)) as executor:
-        futures = {executor.submit(run_seed, seed): seed for seed in range(N_SEEDS)}
+        n_gpus = len(_GPUS)
+        futures = {
+            executor.submit(run_seed, seed, _gpu_for_seed(seed, n_gpus)): seed
+            for seed in range(N_SEEDS)
+        }
         for future in concurrent.futures.as_completed(futures):
             seed = futures[future]
             try:
