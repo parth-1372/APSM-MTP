@@ -1,0 +1,34 @@
+
+\section{Active Appearance Model}\label{AppendixAAM}
+\noindent Active Appearance Model (AAM) \cite{cootes2001active} is a principal component analysis (PCA)-based statistical approach, and it is used to model the variations in shape due to pose, expression, as well as variation in texture due to lighting conditions. So apparently, AAM is a combination of shape model (SM) and appearance/texture model (AM). Learning of AAM model requires a set of training instances having marked with facial landmark points.
+\par Fitting of AAM to a given test image {\bf I} is a non-linear optimization problem \cite{baker2004lucas}. The computational complexity of the original active appearance model is of the order of ${\left( {n + m} \right)^2}N$, where $n$ and $m$ denote the number of shape and texture parameters. In general $m >> n$ and thus, the total cost becomes very high, which makes the fitting process very slow. A fast and accurate AAM is proposed in \cite{6751183}, where the total cost is reduced to only few times of $mN$. We employed the same fast-AAM technique in our proposed algorithm (Chapter 4). The objective of fast-AAM is to minimize the mean square error between the model instance and the given test face image over the model parameters. Mathematically, this optimization problem can be expressed as: %equation \ref{eq301}):
+\begin{equation}\label{eq301}
+{\text{arg }}\mathop {\min }\limits_{{\mathbf{p}}{\text{,}}{\mathbf{c}}} ||{\mathbf{I}}\left( {{\mathbf{W}}\left( {{\mathbf{x}};{\mathbf{p}}} \right)} \right) - {{\mathbf{A}}_0} - {\mathbf{Ac}}||
+\end{equation}
+where, $\mathbf{p}$ and $\mathbf{c}$ are the parameters of shape and texture models. The symbol $\mathbf{W}$ represents a piece-wise warping function. In Eqn. (\ref{eq301}), $\left\{ {{{\mathbf{A}}_0},{\mathbf{A}} \in {\Re ^{\left\{ {N,m} \right\}}}} \right\}$ defines an appearance model, where ${\mathbf{A}}_0$ is the mean appearance, and $\mathbf{A}$ is a matrix of $m$ eigenvectors corresponding to $m$ largest eigenvalues obtained by applying PCA on shape-free texture training images. The shape-free texture images are obtained by warping each face image so that its landmark points match with the mean shape ${\mathbf{s}}_0$. This process removes spurious texture variations on account of shape differences. Similarly, the shape model ${\text{SM: }}\left\{ {{{\mathbf{s}}_0},{\mathbf{S}} \in {\Re ^{\left\{ {2u,n} \right\}}}} \right\}$ is defined by the mean shape ${\mathbf{s}}_0$ and the transformation matrix $\mathbf{S}$. The columns of $\mathbf{S}$ represent eigenvectors obtained by applying PCA on similarity-free shape instances.
+\par Given the models, a test image {\bf I} and its similarity-free shape $\mathbf{s}$, the model parameters can be estimated by using Eqn. (\ref{eq302}) and Eqn. (\ref{eq303}) respectively.
+\begin{align}
+{\text{  }}{\mathbf{\overset{\lower0.5em\hbox{$\smash{\scriptscriptstyle\frown}$}}{s} }} = {{\mathbf{s}}_0} + {\mathbf{Sp}},{\text{   }}{\mathbf{p}} = {\mathbf{S'}}\left( {{\mathbf{s}} - {{\mathbf{s}}_0}} \right)\label{eq302} \\
+{\mathbf{\overset{\lower0.5em\hbox{$\smash{\scriptscriptstyle\frown}$}}{I} }} = {{\mathbf{A}}_0} + {\mathbf{Ac}},{\text{  }}{\mathbf{c}} = {\mathbf{A'}}\left( {{\mathbf{I}} - {{\mathbf{A}}_0}} \right)\label{eq303}
+\end{align}
+%\begin{equation}\label{eq303}
+%{\mathbf{\overset{\lower0.5em\hbox{$\smash{\scriptscriptstyle\frown}$}}{I} }} = {{\mathbf{A}}_0} + {\mathbf{Ac}},{\text{  }}{\mathbf{c}} = {\mathbf{A'}}\left( {{\mathbf{I}} - {{\mathbf{A}}_0}} \right)
+%\end{equation}
+The optimum values of $\mathbf{p}$ and $\mathbf{c}$ can be obtained by the method proposed in \cite {6751183}. 
+\section{Uncorrelated Discriminant Locality Preserving Projection Analysis (UDLPP)}\label{AppendixUDLPP}
+\noindent The UDLPP \cite{yu2008uncorrelated} seeks for a transformation matrix ${\mathbf{V}}$, which projects samples of high-dimensional data onto a low dimensional space such that it preserves the topology of intra-class samples of the observation space. Additionally, it also maximizes between-class-scatter-matrix of the reduced sample space. The above criterion is formulated as a minimization problem which is represented as follows:
+\begin{equation}\label{ICVGIP-eqn-1}
+{J_{UDLPP}}\left( {\mathbf{V}} \right) = \frac{{{J_1}\left( {\mathbf{V}} \right)}}{{{J_2}\left( {\mathbf{V}} \right)}} = \frac{{tr\left( {{{\mathbf{V}}^T}{\mathbf{XL}}{{\mathbf{X}}^T}{\mathbf{V}}} \right)}}{{tr\left( {{{\mathbf{V}}^T}{\mathbf{XB}}{{\mathbf{X}}^T}{\mathbf{V}}} \right)}}
+\end{equation} 
+The numerator term ${J_1}\left( {\mathbf{V}} \right) = tr\left( {{{\mathbf{V}}^T}{\mathbf{XL}}{{\mathbf{X}}^T}{\mathbf{V}}} \right)$ of Eqn. (\ref{ICVGIP-eqn-1}) reflects the sum of the distances between the samples of the intra-class in the reduced subspace \cite{eleftheriadis2015discriminative}. In Eqn. (\ref{ICVGIP-eqn-1}), $tr\left(  \cdot  \right)$ represents the trace of a matrix, the $N \times N$ matrix ${\mathbf{L}}$ is known as Laplacian matrix. The Laplacian matrix, ${\mathbf{L}}$, is defined as ${\mathbf{L}} = {\mathbf{D}} - {\mathbf{A}}$, where ${{\mathbf{D}}_{ii}} = \sum\nolimits_j {{{\mathbf{A}}_{ij}}} $, and similarity matrix ${\mathbf{A}}$ is obtained by applying RBF kernel which is given as:
+\begin{equation}\label{ICVGIP-eqn-2}
+{{\mathbf{A}}_{ij}} = \left\{ {\begin{array}{*{20}{lc}}
+  {\exp \left( { - \frac{{||{{\mathbf{x}}_i} - {{\mathbf{x}}_j}|{|^2}}}{{\sigma}^2 }} \right)} \\ 
+  {0{\text{,     otherwise}}} 
+\end{array}} \right.{\text{, if }}{c_i} = {c_j}{\text{ }}
+\end{equation}
+where, $\sigma$ represents width of the kernel function and ${c_i}$ indicates the class of the $i^{th}$ sample of the observation space. On the other hand, denominator term of the Eqn. (\ref{ICVGIP-eqn-1}) {\em i.e.,} ${J_2}\left( {\mathbf{V}} \right) = tr\left( {{{\mathbf{V}}^T}{\mathbf{XB}}{{\mathbf{X}}^T}{\mathbf{V}}} \right)$ represents sum of distances of all pairs of distinct classes, and hence ${J_2}\left( {\mathbf{V}} \right)$ has to be maximized for any classification problem. Furthermore, a statistical constraint has been imposed on Eqn. (\ref{ICVGIP-eqn-1}), so that any two components of the reduced feature vector become uncorrelated. The two feature components $y_i$ and $y_j$ ($i\ne j$) of extracted feature vector ${\mathbf{y}} = {{\mathbf{V}}^T}{\mathbf{x}}$ are said to be uncorrelated iff 
+\begin{equation}\label{ICVGIP-eqn-3}
+E\left[ {\left( {{y_i} - E\left( {{y_i}} \right)} \right)\left( {{y_j} - E\left( {{y_j}} \right)} \right)} \right] = 0
+\end{equation}
+Hence, the final minimization problem of UDLPP becomes a constraint optimization problem which is further converted to the generalized eigenvalue problem. The eigenvectors corresponding to $d$ smallest eigenvalues represent the first $d$-columns of the required transformation matrix.
