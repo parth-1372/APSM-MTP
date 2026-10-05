@@ -25,6 +25,7 @@ from experiment_config import (
     N_SIMULATIONS,
     N_NODES,
     N_SMALL_DATASET_NODES,
+    K_EDGE_CONNECTIVITY,
 )
 
 # In[4]:
@@ -34,6 +35,7 @@ from experiment_config import (
 n_functions = 1
 timesteps_in = 4
 n_nodes = N_NODES
+k = K_EDGE_CONNECTIVITY
 n_small_dataset_nodes = N_SMALL_DATASET_NODES
 
 np.random.seed(GLOBAL_SEED)
@@ -42,8 +44,8 @@ small_dataset_suffix = f"_{n_small_dataset_nodes}sd" if n_small_dataset_nodes > 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
-base_dataset_folder = ROOT_DIR / f"data/datasets/porto_{n_nodes}n_3k{small_dataset_suffix}"
-base_network_folder = ROOT_DIR / f"data/networks/porto_{n_nodes}n_3k"
+base_dataset_folder = ROOT_DIR / f"data/datasets/porto_{n_nodes}n_{k}k{small_dataset_suffix}"
+base_network_folder = ROOT_DIR / f"data/networks/porto_{n_nodes}n_{k}k"
 
 
 # In[5]:

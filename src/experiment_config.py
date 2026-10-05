@@ -21,10 +21,10 @@ N_SIMULATIONS = 10
 # 2. Network & Dataset Topography
 # ──────────────────────────────────────────────────────────────────────
 # The number of geographical nodes (towers) to sample for the network.
-N_NODES = 50
+N_NODES = 6
 
 # The number of nearest neighbours each node connects to in the graph.
-K_EDGE_CONNECTIVITY = 3
+K_EDGE_CONNECTIVITY = 2
 
 # If greater than 0, assigns a "small dataset" to this many nodes (data imbalance).
 N_SMALL_DATASET_NODES = 0

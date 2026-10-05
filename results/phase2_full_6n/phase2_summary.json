@@ -1,0 +1,23 @@
+{
+  "run_timestamp": "2026-10-05T10:52:44.570152",
+  "config": {
+    "n_nodes": 6,
+    "fixed_updates": 100,
+    "epochs_per_update": 3,
+    "n_seeds": 1,
+    "max_samples": null,
+    "semantic_k": 2.0,
+    "semantic_window": 50,
+    "semantic_heartbeat": 5
+  },
+  "results": {
+    "packet_reduction_pct": 58.11,
+    "mse_delta_pct": 10.09,
+    "baseline_mse_mean": 0.004831,
+    "apsm_mse_mean": 0.005319,
+    "baseline_mse_std": 0.0,
+    "apsm_mse_std": 0.0,
+    "energy_saved_joules": 61348.91,
+    "energy_saved_wh": 17.0414
+  }
+}
