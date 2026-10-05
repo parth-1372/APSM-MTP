@@ -1,21 +1,21 @@
 {
-  "run_timestamp": "2026-10-04T00:40:54.328044",
+  "run_timestamp": "2026-10-05T11:05:08.330714",
   "config": {
     "n_nodes": 10,
     "fixed_updates": 100,
     "epochs_per_update": 3,
-    "n_seeds": 3,
+    "n_seeds": 2,
     "max_samples": null,
     "semantic_k": 2.0,
     "semantic_window": 50,
     "semantic_heartbeat": 5
   },
   "results": {
-    "packet_reduction_pct": 50.16,
-    "mse_delta_pct": 6.92,
-    "baseline_mse_mean": 0.030835,
-    "apsm_mse_mean": 0.03297,
-    "baseline_mse_std": 0.001436,
-    "apsm_mse_std": 0.000585
+    "packet_reduction_pct": 49.61,
+    "mse_delta_pct": 4.5,
+    "baseline_mse_mean": 0.031827,
+    "apsm_mse_mean": 0.033258,
+    "baseline_mse_std": 0.000374,
+    "apsm_mse_std": 0.000513
   }
 }
