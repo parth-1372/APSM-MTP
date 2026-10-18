@@ -33,7 +33,7 @@ def create_LSTM(config: Config) -> Model:
     )(inputs)
 
     outputs = [
-        Dense(1, activation="relu", name=f"fn_{i}")(lstm_layers)
+        Dense(1, activation="relu", name=f"fn_{i}", dtype="float32")(lstm_layers)
         for i in range(config.training.n_output_vars)
     ]
 

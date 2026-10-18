@@ -72,7 +72,12 @@ def load_model(config: UserConfig) -> Model:
     return model
 
 def get_node_dataset(dataset_dir: str, node_index: int) -> Dataset:
-    dataset: Dataset = np.load(f"{dataset_dir}/node_{node_index}.npz")
+    p = Path(dataset_dir) / f"node_{node_index}.npz"
+    if not p.exists():
+        alt_p = Path(dataset_dir).parent / f"node_{node_index}.npz"
+        if alt_p.exists():
+            p = alt_p
+    dataset: Dataset = np.load(str(p))
     return {
         "X_train": dataset["X_train"],
         "Y_train": dataset["Y_train"],

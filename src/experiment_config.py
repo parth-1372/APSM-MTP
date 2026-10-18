@@ -21,10 +21,10 @@ N_SIMULATIONS = 10
 # 2. Network & Dataset Topography
 # ──────────────────────────────────────────────────────────────────────
 # The number of geographical nodes (towers) to sample for the network.
-N_NODES = 6
+N_NODES = 10
 
 # The number of nearest neighbours each node connects to in the graph.
-K_EDGE_CONNECTIVITY = 2
+K_EDGE_CONNECTIVITY = 3
 
 # If greater than 0, assigns a "small dataset" to this many nodes (data imbalance).
 N_SMALL_DATASET_NODES = 0
@@ -65,3 +65,20 @@ SEMANTIC_WINDOW = 50
 # The maximum number of times a node is allowed to suppress transmission in a row.
 # Forces a 'heartbeat' send to prevent network deadlock.
 SEMANTIC_HEARTBEAT = 5
+
+
+# ──────────────────────────────────────────────────────────────────────
+# 5. Federated Learning (FedAvg) Benchmark Configuration
+# ──────────────────────────────────────────────────────────────────────
+# Whether to include Federated Learning in the benchmark comparison run.
+RUN_FEDERATED = True
+
+# Number of FL communication rounds (default: matches FIXED_UPDATES)
+FL_ROUNDS = FIXED_UPDATES
+
+# Local epochs per round (default: matches EPOCHS_PER_UPDATE)
+FL_EPOCHS = EPOCHS_PER_UPDATE
+
+# Client sampling ratio per round (1.0 = all nodes participate, 0.5 = 50% as in Base Paper Table II)
+FL_FRACTION_FIT = 1.0
+

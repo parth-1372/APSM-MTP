@@ -16,19 +16,21 @@ The base paper (Tundo 2025) implements a fully decentralised, serverless Gossip 
 # Install dependencies
 poetry install
 
-# Run full GL-Baseline vs APSM comparison (requires Porto dataset in data/)
+# Run 3-Way Benchmark: Federated Learning vs GL-Baseline vs APSM
 cd src/
 python run_all_comparisons.py
 ```
 
 ## Results (Full Run — Kaggle GPU T4, June 2026)
 
-| Metric | GL-Baseline | APSM Phase 2 |
-|---|---|---|
-| Avg MSE (scaled) | 0.009269 | 0.009332 (+0.69%) |
-| Packets Sent | 1,447 | 1,314 |
-| Packets Suppressed | 0 | **1,674** |
-| **Packet Reduction** | 0% | **53.6% ✅** |
+| Metric | Federated Learning (FL) | GL-Baseline | APSM Phase 2 |
+|---|---|---|---|
+| Topology | Central Star (SPOF) | P2P Mesh Graph | Sparse P2P Mesh |
+| Avg MSE (scaled) | ~0.00918 | 0.009269 | 0.009332 (+0.69%) |
+| Packets Sent | ~2,000 (2N / round) | 1,447 | 1,314 |
+| Packets Suppressed | 0 | 0 | **1,674** |
+| **Packet Reduction vs GL** | — | 0% | **53.6% ✅** |
+| Server Dependency | YES (Bottleneck) | NO (Fully P2P) | NO (Fully P2P) |
 
 ## Documentation
 
