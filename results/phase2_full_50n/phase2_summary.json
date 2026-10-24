@@ -1,5 +1,5 @@
 {
-  "run_timestamp": "2026-10-05T02:22:54.592678",
+  "run_timestamp": "2026-10-19T18:55:18.436341",
   "config": {
     "n_nodes": 50,
     "fixed_updates": 100,
@@ -8,16 +8,26 @@
     "max_samples": null,
     "semantic_k": 2.0,
     "semantic_window": 50,
-    "semantic_heartbeat": 5
+    "semantic_heartbeat": 5,
+    "run_federated": true,
+    "fl_rounds": 100,
+    "fl_epochs": 3,
+    "fl_fraction_fit": 1.0
   },
   "results": {
-    "packet_reduction_pct": 49.27,
-    "mse_delta_pct": 3.09,
-    "baseline_mse_mean": 0.010239,
-    "apsm_mse_mean": 0.010555,
+    "packet_reduction_pct": 50.26,
+    "mse_delta_pct": 3.1,
+    "packet_reduction_pct_vs_gl": 50.26,
+    "mse_delta_pct_vs_gl": 3.1,
+    "baseline_mse_mean": 0.01075,
+    "apsm_mse_mean": 0.011083,
+    "fl_mse_mean": 0.005617,
     "baseline_mse_std": 0.0,
     "apsm_mse_std": 0.0,
-    "energy_saved_joules": 530887.84,
-    "energy_saved_wh": 147.4688
+    "fl_mse_std": 0.0,
+    "baseline_packets": 8029,
+    "apsm_packets_sent": 6652,
+    "apsm_packets_suppressed": 8112,
+    "fl_packets": 10000
   }
 }

@@ -1,0 +1,33 @@
+{
+  "run_timestamp": "2026-10-18T21:38:22.296216",
+  "config": {
+    "n_nodes": 10,
+    "fixed_updates": 100,
+    "epochs_per_update": 3,
+    "n_seeds": 1,
+    "max_samples": null,
+    "semantic_k": 2.0,
+    "semantic_window": 50,
+    "semantic_heartbeat": 5,
+    "run_federated": true,
+    "fl_rounds": 100,
+    "fl_epochs": 3,
+    "fl_fraction_fit": 1.0
+  },
+  "results": {
+    "packet_reduction_pct": 54.22,
+    "mse_delta_pct": 4.23,
+    "packet_reduction_pct_vs_gl": 54.22,
+    "mse_delta_pct_vs_gl": 4.23,
+    "baseline_mse_mean": 0.031063,
+    "apsm_mse_mean": 0.032376,
+    "fl_mse_mean": 0.021337,
+    "baseline_mse_std": 0.0,
+    "apsm_mse_std": 0.0,
+    "fl_mse_std": 0.0,
+    "baseline_packets": 1437,
+    "apsm_packets_sent": 1305,
+    "apsm_packets_suppressed": 1702,
+    "fl_packets": 2000
+  }
+}

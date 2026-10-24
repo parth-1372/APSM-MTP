@@ -5,11 +5,19 @@ from typing import Optional
 # In[3]:
 
 
+import sys
 from datetime import datetime, timedelta
 from datetime import time
 from math import sqrt
 from pathlib import Path
 from typing import Callable, Optional
+
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 import numpy as np
 import pandas as pd
@@ -375,6 +383,12 @@ for i in range(N_SIMULATIONS):
     dataset_folder = Path(base_dataset_folder / str(i))
     dataset_folder.mkdir(parents=True, exist_ok=True)
 
+    if (dataset_folder / f"node_{n_nodes - 1}.npz").exists():
+        print(f"[SKIP] Simulation {i} already generated ({n_nodes} nodes). Skipping.")
+        continue
+
+    print(f"[INFO] Generating dataset for simulation {i}/{N_SIMULATIONS} ({n_nodes} nodes)...")
+
     towers = pd.read_csv(base_network_folder / str(i) / "towers.csv")
     towers["distance"] = ((towers["lon"]-LON_CENTRE)**2 + (towers["lat"]-LAT_CENTRE)**2).apply(sqrt) / MAX_DIST
 
@@ -408,16 +422,16 @@ for i in range(N_SIMULATIONS):
         for trend in real_trends
     ]
 
-    for i, trend in enumerate(real_trends):
+    for node_idx, trend in enumerate(real_trends):
         trend = trend.dropna()
-        trend.to_parquet(dataset_folder / f"node_{i}.parquet")
+        trend.to_parquet(dataset_folder / f"node_{node_idx}.parquet")
 
     prepare_dataset_for_training(
         towers_datasets=real_trends,
-        #n_nodes=n_nodes,
         output_folder=dataset_folder,
         input_timesteps=timesteps_in,
         output_timesteps=1,
         n_functions=n_functions,
         n_auxiliary_features=8,
     )
+    print(f"[DONE] Saved dataset for simulation {i} ({n_nodes} nodes)!")

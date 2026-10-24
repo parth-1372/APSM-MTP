@@ -1,0 +1,4 @@
+seed,method,avg_mse_scaled,avg_mse_raw,avg_rmse,avg_mae,total_sent,suppressed,packet_reduction_pct
+0,FederatedLearning,0.005880,547.0,0.067639,0.058186,20000,0,0.0
+0,GL-Baseline,0.007967,741.1,0.087914,0.066889,15421,0,0.0
+0,APSM-Phase2,0.008495,790.3,0.091549,0.069661,13240,15769,50.6

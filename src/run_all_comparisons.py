@@ -26,11 +26,20 @@ import json
 import os
 import sys
 import time
+import shutil
+import argparse
 import concurrent.futures
 import functools
 import datetime
 import gc
 from pathlib import Path
+
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 SRC_DIR = Path(__file__).resolve().parent
 ROOT_DIR = SRC_DIR.parent
@@ -439,11 +448,12 @@ def plot_results(fl_runs: list, b_runs: list, a_runs: list, out_dir: Path):
             for node_id, metrics in run["history"].get("nodes_test_history", {}).items():
                 mse_vals = metrics.get("mse", [])
                 if mse_vals:
+                    show_label = (s_idx == 0) and (int(node_id) < 6 or int(node_id) == N_NODES - 1) if N_NODES > 10 else (s_idx == 0)
                     ax.plot(mse_vals,
-                            alpha=0.9 if s_idx == 0 else 0.25,
-                            linewidth=1.6 if s_idx == 0 else 0.8,
+                            alpha=0.85 if s_idx == 0 else 0.25,
+                            linewidth=1.4 if s_idx == 0 else 0.8,
                             color=color,
-                            label=f"Node {node_id}" if s_idx == 0 else "_nolegend_")
+                            label=f"Node {node_id}" if show_label else "_nolegend_")
         ax.set_title(title, fontsize=11, fontweight="bold")
         ax.set_xlabel("Evaluation Step", fontsize=10)
         ax.set_ylabel("MSE (scaled)", fontsize=10)
@@ -513,7 +523,7 @@ def plot_results(fl_runs: list, b_runs: list, a_runs: list, out_dir: Path):
                 ax.grid(alpha=0.3)
                 if idx == 0:
                     ax.legend(fontsize=7)
-        fig.suptitle("Graph 4: APSM Semantic Surprise ε(t) vs Adaptive Threshold τ(t) — All Nodes",
+        fig.suptitle("Graph 4: APSM Semantic Surprise ε(t) vs Adaptive Threshold τ(t) — Nodes 0..9",
                      fontsize=13, fontweight="bold")
         plt.tight_layout()
         plt.savefig(out_dir / "graph4_semantic_surprise.png", dpi=180)
@@ -525,10 +535,13 @@ def plot_results(fl_runs: list, b_runs: list, a_runs: list, out_dir: Path):
     if per_node:
         nodes  = sorted(per_node.keys(), key=lambda x: int(x))
         counts = [per_node[n] for n in nodes]
-        fig, ax = plt.subplots(figsize=(9, 4))
+        fig_w = max(10, len(nodes) * 0.25)
+        fig, ax = plt.subplots(figsize=(fig_w, 4.5))
         bars = ax.bar(nodes, counts, color=C_SUPP, alpha=0.8, zorder=3)
-        for bar, c in zip(bars, counts):
-            ax.text(bar.get_x() + bar.get_width() / 2, c + 0.3, str(c), ha="center", fontsize=9)
+        if len(nodes) <= 25:
+            for bar, c in zip(bars, counts):
+                ax.text(bar.get_x() + bar.get_width() / 2, c + 0.3, str(c), ha="center", fontsize=8)
+        ax.tick_params(axis="x", rotation=90 if len(nodes) > 15 else 0, labelsize=7 if len(nodes) > 20 else 9)
         ax.set_xlabel("Node ID", fontsize=11)
         ax.set_ylabel("Packets Suppressed", fontsize=11)
         ax.set_title("Graph 5: Per-Node Packet Suppression (APSM Phase 2 — Seed 0)",
@@ -650,10 +663,11 @@ def save_results(fl_runs: list, b_runs: list, a_runs: list, out_dir: Path, pkt_r
 # Seed Execution Runner
 # ──────────────────────────────────────────────────────────────────────
 
-def run_seed(seed: int, gpu_id: str = "") -> tuple[dict, dict, dict]:
+def run_seed(seed: int, gpu_id: str = "", force_fl: bool = False, force_gl: bool = False, force_apsm: bool = False) -> tuple[dict, dict, dict]:
     import os as _os
     import sys as _sys
     import gc
+    import shutil as _shutil
     import multiprocessing as _mp
     from pathlib import Path
 
@@ -690,8 +704,18 @@ def run_seed(seed: int, gpu_id: str = "") -> tuple[dict, dict, dict]:
     # ── 1. Federated Learning (FedAvg) ─────────────────────────
     fl_metrics = None
     if RUN_FEDERATED:
-        fl_workspace = str(SRC_DIR / f"experiments/fl_baseline_seed{seed}")
+        fl_workspace = str(SRC_DIR / f"experiments/fl_baseline_{N_NODES}n_seed{seed}")
         fl_hist_path = Path(fl_workspace) / "0" / "history.json"
+        
+        # Legacy fallback if running 10 nodes and un-suffixed directory exists
+        if not fl_hist_path.exists() and N_NODES == 10:
+            legacy_fl = Path(str(SRC_DIR / f"experiments/fl_baseline_seed{seed}")) / "0" / "history.json"
+            if legacy_fl.exists():
+                fl_hist_path = legacy_fl
+
+        if force_fl and Path(fl_workspace).exists():
+            _shutil.rmtree(fl_workspace, ignore_errors=True)
+
         fl_start = time.time()
         if fl_hist_path.exists():
             print(f"  ✅  Federated Learning (seed {seed}) — cached, skipping.")
@@ -706,8 +730,17 @@ def run_seed(seed: int, gpu_id: str = "") -> tuple[dict, dict, dict]:
         gc.collect()
 
     # ── 2. GL-Baseline ─────────────────────────────────────────
-    b_workspace = str(SRC_DIR / f"experiments/gl_baseline_seed{seed}")
+    b_workspace = str(SRC_DIR / f"experiments/gl_baseline_{N_NODES}n_seed{seed}")
     b_hist_path = Path(b_workspace) / "0" / "history.json"
+
+    # Legacy fallback if running 10 nodes and un-suffixed directory exists
+    if not b_hist_path.exists() and N_NODES == 10:
+        legacy_b = Path(str(SRC_DIR / f"experiments/gl_baseline_seed{seed}")) / "0" / "history.json"
+        if legacy_b.exists():
+            b_hist_path = legacy_b
+
+    if force_gl and Path(b_workspace).exists():
+        _shutil.rmtree(b_workspace, ignore_errors=True)
 
     b_start = time.time()
     if b_hist_path.exists():
@@ -723,8 +756,17 @@ def run_seed(seed: int, gpu_id: str = "") -> tuple[dict, dict, dict]:
     gc.collect()
 
     # ── 3. APSM (Phase 2) ──────────────────────────────────────
-    a_workspace = str(SRC_DIR / f"experiments/apsm_phase2_seed{seed}")
+    a_workspace = str(SRC_DIR / f"experiments/apsm_phase2_{N_NODES}n_seed{seed}")
     a_hist_path = Path(a_workspace) / "0" / "history.json"
+
+    # Legacy fallback if running 10 nodes and un-suffixed directory exists
+    if not a_hist_path.exists() and N_NODES == 10:
+        legacy_a = Path(str(SRC_DIR / f"experiments/apsm_phase2_seed{seed}")) / "0" / "history.json"
+        if legacy_a.exists():
+            a_hist_path = legacy_a
+
+    if force_apsm and Path(a_workspace).exists():
+        _shutil.rmtree(a_workspace, ignore_errors=True)
 
     a_start = time.time()
     if a_hist_path.exists():
@@ -743,6 +785,23 @@ def run_seed(seed: int, gpu_id: str = "") -> tuple[dict, dict, dict]:
 
 
 def main():
+    parser = argparse.ArgumentParser(description="3-Way Benchmark: FL vs GL vs APSM")
+    parser.add_argument("--force", "--no-cache", dest="force", action="store_true",
+                        help="Force rerun all paradigms (FL, GL, and APSM), ignoring cache.")
+    parser.add_argument("--force-gossip", "--no-cache-gossip", dest="force_gossip", action="store_true",
+                        help="Force rerun GL-Baseline and APSM Phase 2, keeping FL cache.")
+    parser.add_argument("--force-fl", "--no-cache-fl", dest="force_fl", action="store_true",
+                        help="Force rerun Federated Learning baseline only.")
+    parser.add_argument("--force-gl", "--no-cache-gl", dest="force_gl", action="store_true",
+                        help="Force rerun GL-Baseline only.")
+    parser.add_argument("--force-apsm", "--no-cache-apsm", dest="force_apsm", action="store_true",
+                        help="Force rerun APSM Phase 2 only.")
+    args = parser.parse_args()
+
+    force_fl   = args.force or args.force_fl
+    force_gl   = args.force or args.force_gossip or args.force_gl
+    force_apsm = args.force or args.force_gossip or args.force_apsm
+
     if not DATASETS_FOLDER.exists() or not NETWORKS_FOLDER.exists():
         print(f"❌  Data not found at: {DATASETS_FOLDER}")
         print("    Run 1_network_generation.py and 2_dataset_generation.py first, then retry.")
@@ -756,6 +815,8 @@ def main():
     print(f"  Seeds={N_SEEDS} | Updates={FIXED_UPDATES} | Epochs/round={EPOCHS_PER_UPDATE}")
     print(f"  Include FL={RUN_FEDERATED} (Rounds={FL_ROUNDS}, Fraction={FL_FRACTION_FIT})")
     print(f"  MAX_SAMPLES={'FULL DATA' if MAX_SAMPLES is None else MAX_SAMPLES}")
+    if force_fl or force_gl or force_apsm:
+        print(f"  Force rerun flags: FL={force_fl}, GL={force_gl}, APSM={force_apsm}")
     print("=" * 65 + "\n")
 
     fl_runs       = [None] * N_SEEDS
@@ -767,7 +828,7 @@ def main():
     with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
         n_gpus = len(_GPUS)
         futures = {
-            executor.submit(run_seed, seed, _gpu_for_seed(seed, n_gpus)): seed
+            executor.submit(run_seed, seed, _gpu_for_seed(seed, n_gpus), force_fl, force_gl, force_apsm): seed
             for seed in range(N_SEEDS)
         }
         for future in concurrent.futures.as_completed(futures):
