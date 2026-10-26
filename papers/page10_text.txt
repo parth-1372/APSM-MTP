@@ -1,0 +1,78 @@
+=== PAGE 10 ===
+TUNDO et al.: DECENTRALIZED EDGE WORKLOAD FORECASTING WITH GOSSIP LEARNING
+3025
+Fig. 5.
+MSE during training for one node during a sample experiment with
+20 updates × 5 training epochs each. A spike occurs whenever a new model
+arrives (the most it differs from the local model, the highest).
+Fig. 6.
+Comparison between GL with different compression rates and
+benchmark methods (red triangles: average MMSE across all experiments).
+predictions performed on the local node datasets, albeit at the
+expense of generalization.
+2) Weights
+Compression
+Through
+Subsampling: This
+approach applies only to average-based merge strategies,
+intending to reduce the message size and, consequently,
+network usage (which decreases proportionally to the sampling
+rate if the number of updates per node remains constant).
+We considered sampling rates of 0.2, 0.4, 0.6, 0.8, and
+1 (i.e., no sampling), and set the other parameters as in
+Table II. Experiments results (see Fig. 6) highlight how higher
+sampling rates improve the performance in terms of classical
+metrics, since they limit the impact that neighbors have
+on the model development in each node. As before, while
+generalization capabilities are negatively affected by model
+sampling, the MMSE of GL models remains signiﬁcantly
+lower than the one achieved by the single-node model, which
+promotes the effectiveness of the paradigm.
+3) Peer Sampling: One simple method to lower the number
+of sent messages, thereby reducing network costs, is to
+decrease the target sampling probability π, i.e., the likelihood
+that a node will choose to communicate with its target
+neighbors. Table IV, experiments with π values ranging from
+0.25 to 1.0 reveal that variations in π exert only a marginal
+TABLE IV
+MSE MEAN AND STANDARD DEVIATION WITH DIFFERENT TARGET
+SAMPLING PROBABILITIES π
+TABLE V
+MSE MEAN AND STANDARD DEVIATION WITH DIFFERENT NUMBERS OF
+MERGED MODELS
+inﬂuence on the performance of GL, while FL displays higher
+sensitivity, affecting both classical and generalization metrics.
+4) Number of Merged Models: To evaluate the impact of
+the PENS-inspired variant described in Section III-C1, we
+run two experiments considering N = 3 merged models, one
+with no compression and one with 20% weights sampling.
+In both cases, we observed an improvement in terms of
+generalization capabilities, while the classical metrics remain
+roughly unchanged (see Table V).
+However, it is relevant to note that using such a technique
+increases the pressure on the network: since each node has
+to wait until it receives a message from N > 1 (here, 3)
+different neighbors before triggering an update, the overall
+number of the exchanged messages will be at least N times
+higher than in the standard case (N = 1). In any case, note
+that an N × estimate may be too optimistic: in general, nodes
+do not receive exactly one message per update from each of
+its neighbors; instead, multiple messages are exchanged before
+collecting the N required sets of model weights.
+5) Stopping Criteria: We run a set of experiments to
+investigate the impact of the two stopping criteria introduced
+in Section III-C4: FixedUpdates and EarlyStopping (ES). With
+respect to the latter we want to investigate whether, from a
+node perspective, its own validation loss history may be a
+valid indicator of the overall training progress. In particular, we
+designed a conservative EarlyStopping strategy that requires
+5 updates without an improvement of at least 0.1 in validation
+loss, and an aggressive EarlyStopping one, which requires 5
+epochs without an improvement of at least 1. We compare it
+with a FixedUpdate strategy where training is performed with
+100 ﬁxed updates per node.
+As shown in Table VI, even though the classical metrics
+are roughly comparable, models trained with EarlyStopping
+show remarkably worse generalization performance than those
+trained for more epochs. Based on these results, it is reasonable
+to assume that validation loss is not a sufﬁcient metric to deﬁne

@@ -1,0 +1,795 @@
+=== PAGE 2 ===
+TUNDO et al.: DECENTRALIZED EDGE WORKLOAD FORECASTING WITH GOSSIP LEARNING
+3017
+Moreover, GL addresses the challenges in developing such
+a model for a geographically-dispersed environment with
+unreliable nodes by allowing asynchronous model updates.
+This method ensures that information eventually disseminates
+throughout the entire edge network [15]. In addition, by incor-
+porating contributions from various nodes, each node’s model
+can capture a wide range of workload patterns, achieving a
+balance between generalization and speciﬁcity. This balance is
+essential in a decentralized learning context, allowing nodes to
+handle out-of-distribution trafﬁc patterns effectively. Finally, a
+well-generalized model can be adopted by new nodes joining
+the network, even if they lack historical data to develop their
+own models.
+This paper introduces Gossip Learning as a solution for
+decentralized workload forecasting in edge environments.
+While our proposed method is generally applicable to a
+variety of edge computing scenarios, we adopt, as a motiva-
+tional example, DFaaS [18], a decentralized edge environment
+that implements the serverless Function-as-a-Service (FaaS)
+model. In this context, we focus on forecasting the workload—
+a critical step towards enabling improved responsiveness,
+resource scaling, and distribution at the edge [3], [18], [19],
+[20], [21], [22].
+We enhance the GL protocol to better align with the
+characteristics and challenges of decentralized edge comput-
+ing. In particular, we propose a performance-based approach
+inspired by PENS [23] to selectively merge models from
+neighbors, increasing the robustness. We also propose a
+novel merge strategy, Age-Weighted Overwrite, which uses the
+model age to probabilistically decide model overwrites. In
+addition, we explore FixedUpdates and EarlyStopping criteria
+to prevent overﬁtting. Moreover, we implemented and publicly
+released a discrete-event simulator capable of simulating
+GL with various network topologies and stopping criteria,
+which is a feature not available in other simulators [24], [25].
+An open-source prototype of the simulator is publicly
+accessible [26].
+Finally, we conducted an extensive empirical evaluation
+to assess the applicability of GL for workload forecasting
+in P2P edge topologies. In particular, we considered ﬁve
+dimensions: (i) the performance of GL in this domain, com-
+pared to classical approaches (i.e., ofﬂine-only, centralized,
+and Federated Learning); (ii) the impact of GL parameters on
+performance; (iii) the scalability and network overhead of GL;
+(iv) the robustness of GL to node failures; (v) the demand
+for computational resources during training. Our experiments
+leveraged both real workload traces from FaaS applications
+and synthetic instances. All experimental materials are publicly
+available on Zenodo [27] and on GitHub [26].
+The rest of the paper is organized as follows. Section II
+provides background information that introduces the Gossip
+Learning protocol. Section III describes our motivational
+scenario and the approach we propose to tackle the problem of
+decentralized load forecasting. Section IV provides details on
+the discrete-event simulator. Sections V and VI present details
+of the experimental setup and empirical evaluation. Section VII
+discusses the related work. Finally, Section VIII outlines the
+conclusions and possible future research directions.
+II. BACKGROUND
+Learning in distributed systems, where data resides on
+distinct nodes, presents a challenge due to network and com-
+putational scalability limitations, and privacy concerns [17].
+Federated Learning (FL) [17] was initially proposed by
+Google as a means of training the model underlying its
+predictive keyboard (GBoard) while preserving user privacy. In
+FL, model training is distributed across multiple workers, each
+holding a private local dataset. A central server coordinates the
+training process by periodically selecting a subset of workers,
+elaborating the latest globa
+------------------------------------
+=== PAGE 5 ===
+3020
+IEEE TRANSACTIONS ON NETWORK AND SERVICE MANAGEMENT, VOL. 22, NO. 4, AUGUST 2025
+Algorithm 2 Modiﬁed OnReceiveModel for Multi-Model
+Merging
+1: procedure ONRECEIVEMODEL(cr, wr )
+2:
+lr ←GETLOSS(Dl, wr )
+▷Evaluate model on local data
+3:
+cache.store((cr , wr , lr ))
+4:
+if cache.size() > T then:
+5:
+models ←cache.get_best_n(N)
+6:
+w ←MERGE(models)
+7:
+w ←TRAIN(w, Dl)
+8:
+c ←UPDATECONTEXT(c, w, Dl)
+9:
+cache.clear()
+10:
+end if
+11: end procedure
+where network topology and workloads shift over time. To
+address this limitation, we propose a peer selection mechanism
+that remains resilient under such changes.
+Rather than relying on feature similarity, we leverage
+the DFaaS P2P network’s peer sampling service to enable
+decentralized and scalable neighbor discovery. It prioritizes
+peers based on latency, selecting topologically-closer nodes
+to balance similarity with reduced communication overhead.
+This locality-aware selection provides a crucial advantage: it
+inherently adapts to evolving network conditions, seamlessly
+integrating new nodes without requiring explicit similarity
+estimation. Furthermore, unlike traditional GL, which predom-
+inantly relies on unicast propagation, we employ multicast to
+improve communication efﬁciency. To prevent excessive mes-
+sage ﬂooding, we introduce a stochastic selection mechanism
+that restricts interaction to a controllable fraction of active
+peers. This ensures a diverse model exchange while keeping
+message overhead manageable.
+3) Age-Weighted Overwrite: In this paper, we propose
+a novel model merging strategy, termed the Age-Weighted
+Overwrite strategy, which synthesizes the Overwrite approach
+(discussed in Section II-B) with the Age-Weighted Average
+method, as introduced in [15].
+The Age-Weighted Average [15] strategy modulates the
+merging process by incorporating a weighting factor that
+accounts for the age of each model. Formally, the age of
+model i, denoted as ti, is deﬁned as the cumulative number
+of data records on which the model has been trained, where
+each record is counted anew upon every training pass. This
+formulation ensures that models trained on larger or more
+frequently used datasets are assigned higher ages, reﬂecting
+their accumulated learning history. The primary objective of
+this approach is to mitigate the adverse effects of integrating
+outdated models–i.e., models trained on substantially fewer
+data points than the current one. The model age information
+can be communicated through the context c, facilitating
+efﬁcient coordination among distributed agents.
+The proposed Age-Weighted Overwrite strategy introduces
+a probabilistic overwrite mechanism, wherein the received
+model may entirely replace the current model with probability
+p, which is dynamically computed based on the relative ages
+(deﬁned as in [15]) of the models. Speciﬁcally:
+p =
+⎧
+⎨
+⎩
+1 −
+
+t
+tr
+2
+, if tr > t,
+ tr
+t
+2,
+if tr ≤t.
+with t and tr representing the ages of the local and received
+models, respectively.
+4) Stopping Criteria: In its classical form, GL assumes that
+the protocol is either continuously running or running for a
+ﬁxed amount of time. While the literature offers numerous
+sophisticated techniques for terminating training to prevent
+overﬁtting (e.g., early stopping, as discussed in [44]), these
+methods are often challenging to adapt to the GL paradigm.
+This is because each node operates with a distinct model,
+making it difﬁcult to deﬁne a general stopping criterion that
+can effectively control the entire procedure.
+In this work, we propose and examine the potential of
+employing two stopping criteria for GL in our scenario:
+1) FixedUpdates: each node is constrained to perform a
+ﬁxed number of updates. A new update is performed
+each time a node receives a message from a neighbor.
+In the event that a message is received subsequent to
+the threshold being reached, it is discarded. This is the
+simplest criterion, but when applied it does not take into
+account the quality of the resulting model.
+2) Earl
+------------------------------------
+=== PAGE 6 ===
+TUNDO et al.: DECENTRALIZED EDGE WORKLOAD FORECASTING WITH GOSSIP LEARNING
+3021
+introduces signiﬁcant network overhead, particularly as models
+grow in size and complexity. This communication burden not
+only affects scalability but also exacerbates vanishing variance.
+To address these challenges, model compression has been
+proposed as a means to reduce network overhead, mitigate van-
+ishing variance, and enhance generalization [45], [46], [47].
+A seminal work in this area explores strategies for improv-
+ing communication efﬁciency in FL through compression
+techniques such as quantization, sparsiﬁcation, low-rank
+approximation,
+and
+subsampling
+[45].
+However,
+in
+the
+speciﬁc domain of GL, the use of model compression tech-
+niques remains underexplored. A handful of studies have
+proposed subsampling, where only a ﬁxed percentage of
+randomly-selected model weights is shared with selected
+peers [15], [43]. Building upon this body of work, our paper
+investigates subsampling as a model compression technique
+due to its proven computational efﬁciency.
+IV. DISCRETE-EVENT SIMULATOR
+We designed a discrete-event simulator capable of running
+both the GL classical protocol and the proposed extensions.
+The simulator is scenario-agnostic, meaning it is not restricted
+to the speciﬁc context described in Section III-A.
+Events are processed sequentially based on their times-
+tamps, that is, when a new event occurs, it is added to a
+time-ordered priority queue, whose elements are processed by
+the simulator one at a time. The simulation ends when the
+queue is empty. Optionally, a simulation can be conﬁgured so
+that each node will periodically test its current model against a
+set of benchmark models, which shall be the same for all nodes
+(e.g., a model trained in a centralized fashion). By computing
+the loss function for the predictions made at each step, it is
+possible to analyze the training progress, both in terms of
+loss reduction and convergence speed among the models in
+different nodes.
+The simulator allows conﬁguring the capacity of each link
+by specifying the time required to transfer model weights–
+expressed in simulated seconds. It is possible to deﬁne
+both indirect and direct links to create a wide variety of
+network topologies, with conﬁgurable download and upload
+bandwidths. Finally, the simulator supports both link and
+node failures in a customizable way. We have integrated
+both the carbontracker [48] and the scalene [49] proﬁlers to
+gather information on the power, energy, CPU and memory
+consumption in several phases of the GL protocol.
+In the following, we detail the most relevant aspects of the
+simulator: the support of different node states and transitions
+between them, and the simulation workﬂow including the
+types of generated events.
+A. Node States and Transitions
+Nodes can be in four different states, namely, ACTIVE,
+TRAINING, STOPPED, and FAILED. A node is ACTIVE
+if it continues accepting incoming messages from neighbors
+and updating its own model. A node is TRAINING when
+an update is triggered. This occurs when an ACTIVE node
+receives a message from a neighbor and later begins training
+Fig. 2.
+Network with 7 nodes with different states. Green nodes (3 and
+5) are ACTIVE, blue node (2) is TRAINING, gray nodes (1, 4, and 6) are
+STOPPED, and the red node is FAILED. Node 6 is not sending its model
+weights because its neighbors (nodes 1 and 4) are also stopped.
+its merged model. Upon completion of the training, depending
+on whether the stopping criterion is met, the node can return
+to the ACTIVE state or transition to the STOPPED one.
+All messages received while the node is in the TRAINING
+state are discarded. A node is STOPPED when it meets
+the stopping criterion for training. Periodically, every node
+undergoes a binomial trial with probability p to determine if it
+should transition to the FAILED state. In this state, the node
+ceases processing and discards all incoming messages. After
+a conﬁgurable delay, it reverts to the AC
+------------------------------------
+=== PAGE 8 ===
+TUNDO et al.: DECENTRALIZED EDGE WORKLOAD FORECASTING WITH GOSSIP LEARNING
+3023
+invocations over 15-minute time intervals to limit the noise in
+the workload signal.
+3) Pre-Processing: For each possible conﬁguration (n, k),
+where n represents the number of nodes and k is the network
+edge connectivity, 10 network variants and their corresponding
+node datasets are generated. For simplicity, the unique pair
+given by a conﬁguration and one of its instances will be
+referred to as experimental setting. The datasets produced for
+each experimental setting undergo a series of pre-processing
+steps to prepare them for training. In particular, a total of
+ν −τ time sequences is generated by each node to be used
+for training, where ν is the number of generated observations
+and τ = 4 is the number of past timesteps to be used for
+predictions. Obtained sequences are reshaped into a training
+record (Xi, Yi), where Xi is the feature array for each time
+step and Yi is a scalar value representing the true number
+of requests to be predicted for each timestep. The 20% of
+prepared sequences form the test set, while the 10% of those
+in the training set are kept for validation.
+The resulting datasets (one per node) contain a univariate
+time series representing the number of requests, towards a
+speciﬁc serverless function, that are generated by clients
+connected to the base station at each speciﬁc time step. Not
+considering the presence of multiple serverless functions is not
+a limitation; indeed, as shown in [51], the best approach for
+FaaS workload forecasting is training a single global univariate
+model on samples from different time series (i.e., related
+to different functions) and use it to predict the incoming
+trafﬁc for all functions, meaning that our approach can be
+readily extended to consider multiple functions. Global uni-
+variate models should be preferred over alternatives because:
+(i) serverless functions often exhibit similar patterns, so a
+model performing well on one time series is likely to do so
+also on others; and (ii) the multiplicity of functions is too high
+to train either a separate univariate model for each function or
+a multivariate model with such a large number of outputs.
+B. Machine Learning Model
+The ML model trained by each node is an LSTM (Long
+Short-Term Memory) neural network, widely recognized as
+the de facto standard for handling time series data due to
+its robustness against the vanishing gradients problem [52].
+Although transformers often yield better results, their superior
+performance for time-series forecasting is still in question [53];
+the large number of trainable parameters makes it impractical
+to continuously serialize and transmit them over the network.
+The architecture and hyperparameters tuning were con-
+ducted manually. The ﬁnal model comprises 2 stacked LSTM
+layers with 50 units each (using the tanh activation function),
+followed by a fully connected (FC) layer with 32 units (using
+the ReLU activation function), and a single-unit output layer.
+A dropout rate of 20% is applied before each FC layer as
+a regularization technique. The Adam optimizer [54] was
+chosen, with an initial learning rate of 0.001.
+We used the Mean Squared Error (MSE) as a loss function,
+as is commonly done for regression problems. MSE is partic-
+ularly suitable for this application as it penalizes larger errors
+more heavily, making it effective in cases where the magnitude
+of the error is critical, not just its proportion to the true
+value.
+C. Training Methodology and Evaluation Metrics
+For each tested experimental setting, including a speciﬁc set
+of GL protocol parameters, we run 10 different simulations
+so that the same conﬁguration and network features get tested
+on different network variants. Each simulation produces n
+models ˜Mi (one per node), whose performance is compared
+with those of two benchmark approaches: single-node models
+Mi, trained exclusively on local data, and a centralized model
+MC , trained on combined dat
+------------------------------------
+=== PAGE 9 ===
+3024
+IEEE TRANSACTIONS ON NETWORK AND SERVICE MANAGEMENT, VOL. 22, NO. 4, AUGUST 2025
+TABLE I
+IMPACT OF DIFFERENT STRATEGIES THAT REDUCE NETWORK USAGE ON
+GL GENERALIZATION CAPABILITIES AND TRAINING TIME
+TABLE II
+BASELINE NETWORK AND GL PROTOCOL CONFIGURATION
+Fig. 4.
+Comparison among GL with different merge strategies, single-node
+and centralized training, and Federated Learning (red triangles denote the
+average MMSE across all experiments).
+A. Comparison With Benchmark Approaches
+Our initial experiments evaluate whether GL can serve as
+a viable alternative to single-node, centralized, and Federated
+Learning approaches. To do so, we conducted experiments
+using conﬁguration parameters consistent with those reported
+in the literature [15] (see Table II), comparing the impact of
+different merge strategies. In these experiments, we did not
+consider the protocol extensions proposed in Section III-C
+apart from using the Age-Weighted Overwrite merge strategy.
+We performed ten simulations across all the generated
+variants of a 10 nodes 3-edge connected network. The MSE
+and average MMSE values, considering both the classical and
+generalized version (see Section V-C), are reported in Fig. 4.
+We observe that the values of metrics computed in the
+classical way are roughly equivalent for all approaches except
+for FL. In contrast, the generalization performance of GL
+models is better than those of single-node models, even though
+worse than the ones of the centralized model, and FL, which,
+however, shows a reduced variance. Notably, FL achieved
+generalization performance on par with GL while exhibiting
+reduced variance. This outcome is anticipated, as FL trains
+a uniﬁed model for all nodes by averaging their parameters,
+TABLE III
+THE MEAN AND STANDARD DEVIATION OF MSE FOR DIFFERENT
+NUMBERS OF UPDATES AND TRAINING EPOCHS
+thereby slightly penalizing individual node performance in
+favor of enhanced overall generalization. Furthermore, the
+Age-Weighted Overwrite strategy, although marginally inferior
+to the Age-Weighted Average strategy in terms of MMSE,
+still slightly improves the base Overwrite strategy in terms
+of classical metrics. Finally, we can observe from the exten-
+sion of box-plot bars that, with the only exception of the
+generalization performance of the centralized model, all the
+other strategies achieve comparable values of STD and RSD.
+Collectively, these results underscore the robustness of the GL
+protocol with respect to the adopted merge strategy across both
+classical and generalization metrics.
+B. Impact and Robustness of GL Protocol Parameters
+We experimented with various conﬁgurations of the GL
+protocol to evaluate how they balance model generalization
+capabilities, network transmission costs (i.e., network usage),
+and training time. In all subsequent sections, except for
+Section VI-B3, we present results using the Age-Weighted
+Average merge strategy. This strategy is slightly more effective
+in terms of generalization metrics.
+1) Number of Epochs Per Update and Number of Updates:
+We evaluated the impact on performance and convergence
+speed of varying the number of updates per node and
+training epochs per update, while keeping all other param-
+eters unchanged. The results presented in Table III indicate
+that increasing the number of epochs per update can yield
+performance comparable to or even superior to that of a higher
+number of updates with fewer epochs, based on classical met-
+rics. Regarding generalization power, as expected, reducing the
+number of updates negatively impacts performance. However,
+the GL models still outperform those trained on a single
+node, and different conﬁgurations of FL for classical metrics,
+suggesting that a balance can be achieved between desired
+accuracy and communication frequency among nodes.
+This behavior happens because, when increasing the number
+of epochs per update, models have more time to ﬁt a node
+dataset after they are transferred. This increases the model
+divergence (see Fig. 5
+------------------------------------
+=== PAGE 10 ===
+TUNDO et al.: DECENTRALIZED EDGE WORKLOAD FORECASTING WITH GOSSIP LEARNING
+3025
+Fig. 5.
+MSE during training for one node during a sample experiment with
+20 updates × 5 training epochs each. A spike occurs whenever a new model
+arrives (the most it differs from the local model, the highest).
+Fig. 6.
+Comparison between GL with different compression rates and
+benchmark methods (red triangles: average MMSE across all experiments).
+predictions performed on the local node datasets, albeit at the
+expense of generalization.
+2) Weights
+Compression
+Through
+Subsampling: This
+approach applies only to average-based merge strategies,
+intending to reduce the message size and, consequently,
+network usage (which decreases proportionally to the sampling
+rate if the number of updates per node remains constant).
+We considered sampling rates of 0.2, 0.4, 0.6, 0.8, and
+1 (i.e., no sampling), and set the other parameters as in
+Table II. Experiments results (see Fig. 6) highlight how higher
+sampling rates improve the performance in terms of classical
+metrics, since they limit the impact that neighbors have
+on the model development in each node. As before, while
+generalization capabilities are negatively affected by model
+sampling, the MMSE of GL models remains signiﬁcantly
+lower than the one achieved by the single-node model, which
+promotes the effectiveness of the paradigm.
+3) Peer Sampling: One simple method to lower the number
+of sent messages, thereby reducing network costs, is to
+decrease the target sampling probability π, i.e., the likelihood
+that a node will choose to communicate with its target
+neighbors. Table IV, experiments with π values ranging from
+0.25 to 1.0 reveal that variations in π exert only a marginal
+TABLE IV
+MSE MEAN AND STANDARD DEVIATION WITH DIFFERENT TARGET
+SAMPLING PROBABILITIES π
+TABLE V
+MSE MEAN AND STANDARD DEVIATION WITH DIFFERENT NUMBERS OF
+MERGED MODELS
+inﬂuence on the performance of GL, while FL displays higher
+sensitivity, affecting both classical and generalization metrics.
+4) Number of Merged Models: To evaluate the impact of
+the PENS-inspired variant described in Section III-C1, we
+run two experiments considering N = 3 merged models, one
+with no compression and one with 20% weights sampling.
+In both cases, we observed an improvement in terms of
+generalization capabilities, while the classical metrics remain
+roughly unchanged (see Table V).
+However, it is relevant to note that using such a technique
+increases the pressure on the network: since each node has
+to wait until it receives a message from N > 1 (here, 3)
+different neighbors before triggering an update, the overall
+number of the exchanged messages will be at least N times
+higher than in the standard case (N = 1). In any case, note
+that an N × estimate may be too optimistic: in general, nodes
+do not receive exactly one message per update from each of
+its neighbors; instead, multiple messages are exchanged before
+collecting the N required sets of model weights.
+5) Stopping Criteria: We run a set of experiments to
+investigate the impact of the two stopping criteria introduced
+in Section III-C4: FixedUpdates and EarlyStopping (ES). With
+respect to the latter we want to investigate whether, from a
+node perspective, its own validation loss history may be a
+valid indicator of the overall training progress. In particular, we
+designed a conservative EarlyStopping strategy that requires
+5 updates without an improvement of at least 0.1 in validation
+loss, and an aggressive EarlyStopping one, which requires 5
+epochs without an improvement of at least 1. We compare it
+with a FixedUpdate strategy where training is performed with
+100 ﬁxed updates per node.
+As shown in Table VI, even though the classical metrics
+are roughly comparable, models trained with EarlyStopping
+show remarkably worse generalization performance than those
+trained for more epochs. Based on these results, it is reasonable
+to assume that validation loss is not a sufﬁcient metric to deﬁne
+
+------------------------------------
+=== PAGE 11 ===
+3026
+IEEE TRANSACTIONS ON NETWORK AND SERVICE MANAGEMENT, VOL. 22, NO. 4, AUGUST 2025
+TABLE VI
+MSE MEAN AND STD DEVIATION WITH DIFFERENT STOPPING CRITERIA
+Fig. 7.
+Average number of messages per node with respect to the number of
+nodes in the network. Each blue data point represents the m value within a
+single simulation; red crosses represent the average over all the simulations.
+an intelligent stopping criterion as it does not take into account
+the generalization performance of models.
+At the same time, we can observe that the generalization
+capabilities of GL models are still superior to those of a single-
+node-only model. Since EarlyStopping, limiting the number
+of updates per node helps reduce the network usage and the
+training time, a good trade-off can be found between the
+models’ accuracy and the overall costs of their development.
+C. Scalability and Network Costs
+Scalability is one of the most relevant properties for dis-
+tributed approaches. We analyzed how the GL protocol scales
+to bigger P2P networks by considering as metric the average
+number of messages exchanged per node throughout the sim-
+ulation, denoted by m. In particular, Sections VI-C1–VI-C4
+evaluate whether and how this is inﬂuenced by the protocol
+conﬁguration parameters. Section VI-C5 discusses whether GL
+can limit, with respect to the centralized approach, the network
+load each node is subject to. All experiments except those in
+Section VI-C4 were run considering 25 updates per node, and
+assuming that 4 epochs are trained per update.
+1) Impact of the Number of Nodes in the Network: The
+ﬁrst set of experiments explored the relationship between m
+and the number of nodes n, varied between 6 and 22, and two
+larger networks with 50 and 100 nodes. All experiments were
+conducted on 3-edge connected P2P networks. As expected,
+m is roughly constant with respect to n (see Fig. 7). However,
+it is relevant to note that the observed value of m is always
+signiﬁcantly higher than the theoretical minimum (which is 25,
+as the number of updates per node). This discrepancy arises
+because nodes typically exchange multiple messages before
+the communication process is effectively concluded.
+Another key factor affecting m is the number of incom-
+ing messages a node discards, either because it is in the
+Fig. 8.
+Average number of messages per node for different network graphs.
+TRAINING state or because it has already begun the transition
+to the STOPPED state (see Section IV-A). In particular,
+the number of messages discarded during the transition to
+STOPPED is relatively small, and its impact diminishes, as
+the number of per-node updates increases. In contrast, the
+number of messages discarded during the TRAINING state is
+inﬂuenced by the average number of neighbors of each node
+(i.e., by the k-edge connectivity of the network), and by the
+ratio between the training and the model transfer times, as
+clariﬁed in the next sections.
+2) Impact of the Number of P2P Network Links: Since, as
+mentioned, the number of discarded messages is inﬂuenced
+by the average degree of a network node, it is interesting
+to see how network costs are impacted by an increase in
+the number of network links. For this reason, three sets of
+experiments were performed. We initially considered 10-nodes
+and 20-nodes networks, respectively, and tuned the k parameter
+related to the k-edge connectivity by considering: (i) all values
+between 1 and 9 for the 10-nodes network; (ii) all odd values
+between 3 and 19 for the 20-nodes network. Then, we kept
+k = 3 ﬁxed and varied n between 5 and 20 as in the previous
+section.
+Note that, as mentioned in Section V-A1, k-edge connec-
+tivity is guaranteed if each node has at least k neighbors.
+However, the actual number of edges may be slightly different
+depending on the generated topology. Therefore, to better
+characterize the network graphs, we will report in the next
+ﬁgures their edge/nodes ratio instead of the prescribed k value.
+Figure 8 reveals a linear relation
+------------------------------------
+=== PAGE 13 ===
+3028
+IEEE TRANSACTIONS ON NETWORK AND SERVICE MANAGEMENT, VOL. 22, NO. 4, AUGUST 2025
+TABLE VII
+MEAN MSE, STD, AND RSD FOR THE CLASSICAL METRIC FOR ALL THE
+NODES IN THE NETWORK, NON-FAILED NODES, AND FAILED NODES
+UNDER DIFFERENT NODE FAILURE PROBABILITIES
+TABLE VIII
+MEAN MSE, STD, AND RSD FOR THE GENERALIZATION METRIC FOR
+ALL THE NODES IN THE NETWORK, NON-FAILED NODES, AND FAILED
+NODES UNDER DIFFERENT NODE FAILURE PROBABILITIES
+duration at each round (5 time units), and the model weights
+transmission time (i.e., tw ∈[25, 35]). For instance, with a
+failure probability of p = 0.01, the simulation produces an
+average of 4 node failures, with each failure causing a node
+to miss approximately 3–4 training rounds before recovering.
+In our experiments, runs with node failures occurred as
+follows: for p= 0.0025, 6 out of 10 runs experienced failures
+(10 failures in total, averaging 1.0 failure per run); for p =
+0.005, 9 out of 10 runs were affected (18 failures in total,
+averaging 1.8 failures per run); and for p = 0.01, all 10 runs
+exhibited failures (53 failures in total, averaging 5.3 failures
+per run).
+Tables VII and VIII summarize the performance results
+using the classical and generalization metrics, respectively.
+For each metric, we report aggregated values of the MMSE,
+STD, and RSD computed across all nodes, non-failed nodes,
+and failed nodes.
+The results are consistent with our initial comparisons with
+benchmark approaches (see Fig. 4), as there is no signiﬁcant
+performance difference between failed and non-failed nodes–
+demonstrating the notable resilience of our approach. An
+exception was observed for p =0.0025, where the failed
+nodes exhibited an unexpected increase in MMSE (and a
+high STD) for the generalization metric. Further investigation
+revealed that, in one run, the sole failed node produced a
+substandard model (with a generalization MSE of 14299),
+which skewed the aggregated metrics. Additionally, one of
+its three neighboring nodes also concluded the simulation
+with poor performance (a generalization MSE of 9829), while
+the remaining neighbors performed comparably to the non-
+failed nodes. We hypothesize that this deviation is attributable
+to the interplay between network topology and random peer
+selection; however, further experiments are required to validate
+this hypothesis.
+E. Validation With Real Function Traces
+Following the same approach described in Section V-C,
+we trained GL models on the datasets built upon Microsoft
+TABLE IX
+MSE MEAN AND STANDARD DEVIATION FOR GL, SINGLE-NODE AND
+CENTRALIZED MODELS TRAINED AND TESTED ON THE AZURE
+FUNCTIONS DATASET
+Azure functions traces [50] as outlined in Section V-A. We
+considered ten randomly-generated 10-node, 3-edge-connected
+networks and adopted the conﬁguration parameters described
+in Table II, and the Age-Weighted Average merge strategy.
+The results achieved by GL, single-node, and centralized
+models, both in terms of classical and generalized metrics, are
+reported in Table IX. The values of classical and generalized
+metrics conﬁrm the pattern observed with synthetic traces,
+with the GL protocol improving the generalization capabilities
+of the models with respect to the single-node case.
+Additionally, Figure 12 reports the real and predicted work-
+load values for a sample experiment, obtained by one node
+participating in the GL protocol. The predictions align with
+both the training and test traces, as well as with the common
+test trace used to evaluate the generalized metrics. Although
+peak values are not correctly identiﬁed by the model in most
+cases, the predictions capture well the moving average of
+the distributions, which is represented in the ﬁgure by the
+green line, and closely follow the workload pattern. The same
+behavior can be observed in Figure 13, which reports the real
+and predicted traces for the common test set obtained with the
+single-node model and the centralized model.
+F. Energy and Resource Proﬁling
+We leveraged carbontracker [48] to mo
+------------------------------------
+=== PAGE 15 ===
+3030
+IEEE TRANSACTIONS ON NETWORK AND SERVICE MANAGEMENT, VOL. 22, NO. 4, AUGUST 2025
+computation is conducted at the Edge. Some recent work has
+also adopted the Federated Learning paradigm as a means
+to collaboratively train a model for workload forecasting at
+the Edge without sharing local data. For instance, Que and
+Khan [59] focus on this aspect in the context of Metro Optical
+Networks. However, these studies still either perform model
+training in a single location or need a central coordination, as
+in the case of Federated Learning. Our approach completely
+eliminates the need for a central location and fully decentral-
+izes model training at the Edge.
+C. Decentralized Training Solutions
+When dealing with the need for decentralized training,
+some studies investigate the possibility of adapting FL to a
+decentralized setting [16], [60], [61]. Wink and Nochta [61]
+propose a P2P variant of FL that can enhance data con-
+ﬁdentiality and privacy protection, particularly in systems
+that cater to smaller groups of collaborating data owners.
+In the proposed approach, peers do not exchange model
+weights; rather, they collaboratively perform Secure Average
+Computation to obtain the merged models. Kalra et al. [60]
+propose ProxyFL, a proxy-based FL method for decentral-
+ized collaboration that facilitates the training of robust and
+high-performance models while maintaining data privacy and
+communication efﬁciency. Zhou et al. [16] present PPAFL,
+a P2P-based privacy-perceiving asynchronous FL framework
+for the decentralized training of secure and resilient mobile
+robotic systems. These works built on top of a seminal paper
+by Hegedüs et al. [15], which proposes Gossip Learning as a
+promising decentralized alternative to FL [43]. Starting from
+this body of research, our work aims at adopting decentralized
+learning [14], with particular focus on GL, in the context of
+workload forecasting at the Edge, while incorporating tailored
+adaptations to this use case.
+D. Gossip Learning Adaptations
+Our proposed extensions and adaptations to GL are related
+to four main aspects: (i) how the received models are merged,
+(ii) how the peers are selected for sending model updates, (iii)
+how the model can be compressed to reduce communication
+overhead and (iv) when the protocol should stop its execution.
+In literature, some different merging strategies have been
+proposed, being either parameter-based [15], [38], or gradient-
+based [39]. In our paper we adopt the merging strategies
+designed in [15], and we propose a novel strategy, i.e.,
+Age-Weighted Overwrite, that incentivize more stable models.
+In addition, inspired by [23], we enable the simultaneous
+merging of multiple models. Different peer selection strategies
+have also been proposed, based, e.g., on topology-aware
+selection and node prioritization [35], [36], [37]. In this paper
+we instead adopt an active-peer random selection strategy,
+which better suits to dynamic network conditions as those
+occurring in the considered scenario. Model compression has
+been investigated in some papers [15], [43], [47]: building
+upon them, we propose subsampling as a mean to achieve
+model compression. Finally, no previous work on GL focuses
+on the problem of protocol execution’s stopping to prevent
+overﬁtting. In this paper we propose two strategies, i.e.,
+FixedUpdates and EarlyStopping, with the latter adapted
+from [44].
+E. Time Series Forecasting With Gossip Learning
+The application of GL to the forecasting of time-series
+data has been investigated by few works in literature.
+Dinati et al. [62] focus on vehicle trajectory prediction. Their
+scenario is similar to the one considered in this work, as
+it accounts for dynamic network topologies. However, our
+study introduces the extensions reported in Section VII-D
+and extends the evaluation to aspects related to scalability
+and network costs. Palmieri et al. [63] investigate the impact
+of different network topologies on the capacity of nodes to
+incorporate knowl
+------------------------------------
+=== PAGE 16 ===
+TUNDO et al.: DECENTRALIZED EDGE WORKLOAD FORECASTING WITH GOSSIP LEARNING
+3031
+[9] P. Aditya et al., “Will serverless computing revolutionize NFV?” Proc.
+IEEE, vol. 107, no. 4, pp. 667–678, Apr. 2019.
+[10] M. Savi, A. Banﬁ, A. Tundo, and M. Ciavotta, “Serverless computing
+for NFV: Is it worth it? A performance comparison analysis,” in Proc.
+IEEE PerCom Workshops, 2022, pp. 680–685.
+[11] A. Sabbioni, A. Garbugli, L. Foschini, A. Corradi, and P. Bellavista,
+“Serverless computing for QoS-effective NFV in the cloud edge,” IEEE
+Commun. Mag., vol. 62, no. 4, pp. 40–46, Apr. 2024.
+[12] V. Karagiannis, A. Venito, R. Coelho, M. Borkowski, and G. Fohler,
+“Edge computing with peer to peer interactions: Use cases and impact,”
+in Proc. IoT-Fog, 2019, pp. 46–50.
+[13] M. Masdari and A. Khoshnevis, “A survey and classiﬁcation of the
+workload forecasting methods in cloud computing,” Clust. Comput.,
+vol. 23, no. 4, pp. 2399–2424, 2020.
+[14] L. Yuan, Z. Wang, L. Sun, P. S. Yu, and C. G. Brinton, “Decentralized
+federated learning: A survey and perspective,” IEEE Internet Things J.,
+vol. 11, no. 21, pp. 34617–34638, Nov. 2024.
+[15] I. Hegedüs, G. Danner, and M. Jelasity, “Gossip learning as a decentral-
+ized alternative to federated learning,” in Proc. DAIS, 2019, pp. 74–90.
+[16] X. Zhou et al., “Decentralized P2P federated learning for privacy-
+preserving and resilient mobile robotic systems,” IEEE Wireless
+Commun., vol. 30, no. 2, pp. 82–89, Apr. 2023.
+[17] B. McMahan, E. Moore, D. Ramage, S. Hampson, and B. A. y Arcas,
+“Communication-efﬁcient learning of deep networks from decentralized
+data,” in Proc. AISTATS, 2017, pp. 1273–1282.
+[18] M.
+Ciavotta,
+D.
+Motterlini,
+M.
+Savi,
+and
+A.
+Tundo,
+“DFaaS:
+Decentralized function-as-a-service for federated edge computing,” in
+Proc. IEEE CloudNet, 2021, pp. 1–4.
+[19] C. Cicconetti, M. Conti, A. Passarella, and D. Sabella, “Toward
+distributed computing environments with serverless solutions in edge
+systems,” IEEE Commun. Mag., vol. 58, no. 3, pp. 40–46, Mar. 2020.
+[20] C.
+Cicconetti,
+M.
+Conti,
+and
+A.
+Passarella,
+“Architecture
+and
+performance evaluation of distributed computation ofﬂoading in edge
+computing,” Simul. Model. Pract. Theory, vol. 101, May 2020,
+Art. no. 102007.
+[21] T. Pfandzelter and D. Bermbach, “tinyFaaS: A lightweight FaaS platform
+for edge environments,” in Proc. ICFC, 2020, pp. 17–24.
+[22] I. Baldini et al., Serverless Computing: Current Trends and Open
+Problems. Singapore: Springer, 2017.
+[23] N. Onoszko, G. Karlsson, O. Mogren, and E. L. Zec, “Decentralized
+federated learning of deep neural networks on non-IID data,” 2021,
+arXiv:2107.08517.
+[24] R. Ormándi, I. Heged˝us, and M. Jelasity, “Asynchronous peer-to-peer
+data mining with stochastic gradient descent,” in Proc. Eur. Conf.
+Parallel Process., 2011, pp. 528–540.
+[25] M. Polato. “gossipy documentation.” 2024. Accessed: Jul. 27, 2024.
+[Online]. Available: https://makgyver.github.io/gossipy/index.html
+[26] A. Tundo, F. Filippini, F. Regonesi, M. Ciavotta, and M. Savi. “unimib-
+datAI gl-forecasting-edge.” 2024. Accessed: May 13, 2025. [Online].
+Available: https://github.com/unimib-datAI/gl-forecasting-edge
+[27] A. Tundo, F. Filippini, F. Regonesi, M. Ciavotta, and M. Savi. “Zenodo
+repository.” 2024. Accessed: May 13, 2025. [Online]. Available: https://
+doi.org/10.5281/zenodo.15393791
+[28] M. Savi and F. Olivadese, “Short-term energy consumption forecasting
+at the edge: A federated learning approach,” IEEE Access, vol. 9,
+pp. 95949–95969, 2021.
+[29] V. Perifanis, N. Pavlidis, R.-A. Koutsiamanis, and P. S. Efraimidis,
+“Federated learning for 5G base station trafﬁc forecasting,” Comput.
+Netw., vol. 235, Nov. 2023, Art. no. 109950.
+[30] H. G. Abreha, M. Hayajneh, and M. A. Serhani, “Federated learning in
+edge computing: A systematic survey,” Sensors, vol. 22, no. 2, p. 450,
+2022.
+[31] R. Ormándi, I. Heged˝us, and M. Jelasity, “Gossip learning with linear
+models on fully distributed data,” Concurr. Comput., Pract. Exp., vol. 25,
+no. 4, 
+------------------------------------

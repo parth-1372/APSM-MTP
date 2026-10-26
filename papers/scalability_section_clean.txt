@@ -1,0 +1,161 @@
+limiting the number
+of updates per node helps reduce the network usage and the
+training time, a good trade-off can be found between the
+models’ accuracy and the overall costs of their development.
+C. Scalability and Network Costs
+Scalability is one of the most relevant properties for dis-
+tributed approaches. We analyzed how the GL protocol scales
+to bigger P2P networks by considering as metric the average
+number of messages exchanged per node throughout the sim-
+ulation, denoted by m. In particular, Sections VI-C1–VI-C4
+evaluate whether and how this is inﬂuenced by the protocol
+conﬁguration parameters. Section VI-C5 discusses whether GL
+can limit, with respect to the centralized approach, the network
+load each node is subject to. All experiments except those in
+Section VI-C4 were run considering 25 updates per node, and
+assuming that 4 epochs are trained per update.
+1) Impact of the Number of Nodes in the Network: The
+ﬁrst set of experiments explored the relationship between m
+and the number of nodes n, varied between 6 and 22, and two
+larger networks with 50 and 100 nodes. All experiments were
+conducted on 3-edge connected P2P networks. As expected,
+m is roughly constant with respect to n (see Fig. 7). However,
+it is relevant to note that the observed value of m is always
+signiﬁcantly higher than the theoretical minimum (which is 25,
+as the number of updates per node). This discrepancy arises
+because nodes typically exchange multiple messages before
+the communication process is effectively concluded.
+Another key factor affecting m is the number of incom-
+ing messages a node discards, either because it is in the
+Fig. 8.
+Average number of messages per node for different network graphs.
+TRAINING state or because it has already begun the transition
+to the STOPPED state (see Section IV-A). In particular,
+the number of messages discarded during the transition to
+STOPPED is relatively small, and its impact diminishes, as
+the number of per-node updates increases. In contrast, the
+number of messages discarded during the TRAINING state is
+inﬂuenced by the average number of neighbors of each node
+(i.e., by the k-edge connectivity of the network), and by the
+ratio between the training and the model transfer times, as
+clariﬁed in the next sections.
+2) Impact of the Number of P2P Network Links: Since, as
+mentioned, the number of discarded messages is inﬂuenced
+by the average degree of a network node, it is interesting
+to see how network costs are impacted by an increase in
+the number of network links. For this reason, three sets of
+experiments were performed. We initially considered 10-nodes
+and 20-nodes networks, respectively, and tuned the k parameter
+related to the k-edge connectivity by considering: (i) all values
+between 1 and 9 for the 10-nodes network; (ii) all odd values
+between 3 and 19 for the 20-nodes network. Then, we kept
+k = 3 ﬁxed and varied n between 5 and 20 as in the previous
+section.
+Note that, as mentioned in Section V-A1, k-edge connec-
+tivity is guaranteed if each node has at least k neighbors.
+However, the actual number of edges may be slightly different
+depending on the generated topology. Therefore, to better
+characterize the network graphs, we will report in the next
+ﬁgures their edge/nodes ratio instead of the prescribed k value.
+Figure 8 reveals a linear relationship between the ratio
+of edges to nodes (i.e., the average number of links per
+node) and m across all experimental settings. Moreover, the
+uniformity of the linear regression coefﬁcients, combined with
+the analysis in the previous section, leads us to conclude that
+m is independent of the number of nodes in the network and
+depends solely on the node degree.
+3) Impact of the Transfer Time and Target Sampling
+Probability: We validated the observation that high values of
+m are related to a large number of message rejections by
+increasing by 10 times the model transfer time (i.e., High
+transfer time), under the assumption that, if this is signiﬁcantly
+longer than the training time, the chance of receiving a
+message while in the TRAINING state is lower. Furthermore,
+since we observe fewer rejections when decreasing the target
+=== PAGE 12 ===
+TUNDO et al.: DECENTRALIZED EDGE WORKLOAD FORECASTING WITH GOSSIP LEARNING
+3027
+Fig. 9.
+Average number of messages per node for different transfer times
+and neighbor sampling probabilities.
+Fig. 10.
+Average number of messages per node varying the number of
+updates.
+sampling probability π, we also run a set of simulations
+with π = 0.25 instead of 1 (i.e., Low neighbor sampling
+probability). We considered 20-nodes networks and varied k
+as done previously.
+Results are shown in Figure 9: we observe that the values
+of m decrease more signiﬁcantly for more dense networks. In
+this setting, reducing the sample probability π proves to be
+very effective in decreasing the network load.
+4) Impact of the Number of Model Updates: It is reason-
+able to assume that m grows proportionally to the number of
+per-node updates within a simulation. To validate this, we run
+a set of experiments with a variable number of updates on a
+20-node 3-edge connected network (see Fig. 10). The results
+of Fig. 10 conﬁrm our assumption.
+5) Comparison With the Centralized Approach: We com-
+pared the trafﬁc generated by the GL protocol and the
+centralized approach considering a star network architecture,
+where the master node (i.e., centralized server) is directly
+linked with all the participants. In terms of network costs,
+this can be considered the best-case scenario for centralized
+training, as all the data transmissions between master and
+clients have only to traverse the single link connecting them.
+In a centralized scenario, the incoming network cost for
+a master node connected to n clients is nD, where D is the
+dataset dimension, whereas the outgoing network trafﬁc is nM,
+where M is the model size. Therefore, the overall network cost
+Fig. 11.
+Comparison between the network load with GL and the centralized
+approach, expressed as a function of the model size M.
+can be deﬁned as:
+CC = C in
+C + C out
+C
+= nD + nM = n(αM + M )
+= n(1 + α)M ,
+where α is a scaling factor between model and dataset size
+(in our experiments, α is ∼4.7).
+On the other hand, the average network load for a node
+participating in GL is given by:
+C GL = C in
+GL + C out
+GL = rmM + rmM = 2rmM ,
+where r ∈(0, 1] denotes the compression rate if weights
+sampling is applied.
+As discussed in Section VI-C1, m and, consequently, C GL,
+remain invariant with respect to the number of nodes n.
+This invariance implies that, irrespective of the GL protocol
+parameters and associated network costs, there always exists
+a sufﬁciently large n for which C GL < CC . An example
+is reported in Fig. 11, where we report the network load
+computed for: (i) a 3-edge connected network (with r = 1),
+(ii) a 6-edge connected network (with r = 1), and (iii) a
+centralized master node varying the value of α.
+For both values of k and all α, we observe that CC
+becomes higher than C GL as the number of nodes reaches
+a given threshold. We can conclude that the GL protocol
+offers advantages over the centralized model in terms of
+network load, particularly when dealing with large graphs.
+While the GL protocol may generate more trafﬁc in smaller
+networks, it distributes communications more evenly across
+the network. This reduces the likelihood of bottlenecks, which
+are more common when all data must be sent from clients to
+a centralized server.
+D. Node Failure Resiliency
+We assessed the resiliency of our approach to node failures
+by varying the failure probability. In each simulation, at ﬁxed
+intervals of i = 60, the simulator probabilistically determines
+whether to trigger a node failure based on the conﬁgured
+probability p ∈{0.0025, 0.005, 0.01}. When a failure occurs,
+the recovery time is sampled from a normal distribution with
+mean μ = 125 and standard deviation σ = 5.
+The parameters i, μ, and σ were chosen by considering
+the network size (10 nodes), the overall simulated training
+=== PAGE 13 ===
+3028
+IEEE TRANSACTIONS ON NETWORK AND SERVICE MANAGEMENT, VOL. 22, NO. 4, AUGUST 2025
+TABLE VII
+MEAN MSE, STD, AND RSD FOR THE CLASSICAL METRIC FOR 

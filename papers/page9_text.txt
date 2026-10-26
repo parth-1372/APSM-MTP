@@ -1,0 +1,76 @@
+=== PAGE 9 ===
+3024
+IEEE TRANSACTIONS ON NETWORK AND SERVICE MANAGEMENT, VOL. 22, NO. 4, AUGUST 2025
+TABLE I
+IMPACT OF DIFFERENT STRATEGIES THAT REDUCE NETWORK USAGE ON
+GL GENERALIZATION CAPABILITIES AND TRAINING TIME
+TABLE II
+BASELINE NETWORK AND GL PROTOCOL CONFIGURATION
+Fig. 4.
+Comparison among GL with different merge strategies, single-node
+and centralized training, and Federated Learning (red triangles denote the
+average MMSE across all experiments).
+A. Comparison With Benchmark Approaches
+Our initial experiments evaluate whether GL can serve as
+a viable alternative to single-node, centralized, and Federated
+Learning approaches. To do so, we conducted experiments
+using conﬁguration parameters consistent with those reported
+in the literature [15] (see Table II), comparing the impact of
+different merge strategies. In these experiments, we did not
+consider the protocol extensions proposed in Section III-C
+apart from using the Age-Weighted Overwrite merge strategy.
+We performed ten simulations across all the generated
+variants of a 10 nodes 3-edge connected network. The MSE
+and average MMSE values, considering both the classical and
+generalized version (see Section V-C), are reported in Fig. 4.
+We observe that the values of metrics computed in the
+classical way are roughly equivalent for all approaches except
+for FL. In contrast, the generalization performance of GL
+models is better than those of single-node models, even though
+worse than the ones of the centralized model, and FL, which,
+however, shows a reduced variance. Notably, FL achieved
+generalization performance on par with GL while exhibiting
+reduced variance. This outcome is anticipated, as FL trains
+a uniﬁed model for all nodes by averaging their parameters,
+TABLE III
+THE MEAN AND STANDARD DEVIATION OF MSE FOR DIFFERENT
+NUMBERS OF UPDATES AND TRAINING EPOCHS
+thereby slightly penalizing individual node performance in
+favor of enhanced overall generalization. Furthermore, the
+Age-Weighted Overwrite strategy, although marginally inferior
+to the Age-Weighted Average strategy in terms of MMSE,
+still slightly improves the base Overwrite strategy in terms
+of classical metrics. Finally, we can observe from the exten-
+sion of box-plot bars that, with the only exception of the
+generalization performance of the centralized model, all the
+other strategies achieve comparable values of STD and RSD.
+Collectively, these results underscore the robustness of the GL
+protocol with respect to the adopted merge strategy across both
+classical and generalization metrics.
+B. Impact and Robustness of GL Protocol Parameters
+We experimented with various conﬁgurations of the GL
+protocol to evaluate how they balance model generalization
+capabilities, network transmission costs (i.e., network usage),
+and training time. In all subsequent sections, except for
+Section VI-B3, we present results using the Age-Weighted
+Average merge strategy. This strategy is slightly more effective
+in terms of generalization metrics.
+1) Number of Epochs Per Update and Number of Updates:
+We evaluated the impact on performance and convergence
+speed of varying the number of updates per node and
+training epochs per update, while keeping all other param-
+eters unchanged. The results presented in Table III indicate
+that increasing the number of epochs per update can yield
+performance comparable to or even superior to that of a higher
+number of updates with fewer epochs, based on classical met-
+rics. Regarding generalization power, as expected, reducing the
+number of updates negatively impacts performance. However,
+the GL models still outperform those trained on a single
+node, and different conﬁgurations of FL for classical metrics,
+suggesting that a balance can be achieved between desired
+accuracy and communication frequency among nodes.
+This behavior happens because, when increasing the number
+of epochs per update, models have more time to ﬁt a node
+dataset after they are transferred. This increases the model
+divergence (see Fig. 5), but at the same time implies a
+faster and more robust training progress with respect to the
