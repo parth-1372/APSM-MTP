@@ -673,15 +673,13 @@ class TaskOffloadingSim:
             self._event_seq += 1
             heapq.heappush(self._link_rx_heap, (arr_peer_ts, self._event_seq, task))
 
-    def run_policy(
+    def _run_episode_loop(
         self,
-        policy_fn: Callable[[np.ndarray, np.ndarray, int, float, int], int],
+        policy_fn: Callable[..., int],
+        pass_global_state: bool,
         bin_callback: Optional[Callable[[int, float], None]] = None,
         drain_max_s: int = 20_000,
-    ) -> SimMetrics:
-        """
-        Execute a complete episode using `policy_fn(obs, action_mask, node_id, t_now_s, task_idx) -> action`.
-        """
+    ) -> Tuple[SimMetrics, Dict[int, ResolvedOutcome]]:
         self.reset()
         dt_bin = int(self.dataset.dt_bin_s)
         t0 = float(self.dataset.t_start_s)
@@ -705,8 +703,11 @@ class TaskOffloadingSim:
 
             for task_idx in self._slot_task_indices[slot]:
                 node_id = int(self.tasks.node_idx[task_idx])
-                obs, mask, _ = self.build_observation(node_id, task_idx, t_now_s)
-                action = int(policy_fn(obs, mask, node_id, t_now_s, task_idx))
+                obs, mask, gstate = self.build_observation(node_id, task_idx, t_now_s)
+                if pass_global_state:
+                    action = int(policy_fn(obs, mask, gstate, node_id, t_now_s, task_idx))
+                else:
+                    action = int(policy_fn(obs, mask, node_id, t_now_s, task_idx))
                 assert 0 <= action < len(mask) and bool(mask[action]), f"Invalid masked action {action}"
                 self._dispatch_task(task_idx, action, t_now_s)
 
@@ -727,13 +728,52 @@ class TaskOffloadingSim:
         final_ts = self.tasks.t_ep_start_s + (self.tasks.n_slots + extra + 10) * self.sim.dt_slot_s
         self._deliver_due_events(final_ts)
 
+        outcomes_by_id: Dict[int, ResolvedOutcome] = {out.task_id: out for out in self.outcomes}
         if self.verify_invariants:
             assert len(self.outcomes) == self.tasks.n_tasks, (
                 f"Conservation error: {len(self.outcomes)} != {self.tasks.n_tasks}"
             )
+            assert len(outcomes_by_id) == self.tasks.n_tasks, (
+                f"Outcome attribution error: {len(outcomes_by_id)} != {self.tasks.n_tasks}"
+            )
             assert int(round(self.tasks.t_ep_start_s - t0)) % dt_bin >= 0
 
-        return self.summarize_metrics()
+        return self.summarize_metrics(), outcomes_by_id
+
+    def run_policy(
+        self,
+        policy_fn: Callable[[np.ndarray, np.ndarray, int, float, int], int],
+        bin_callback: Optional[Callable[[int, float], None]] = None,
+        drain_max_s: int = 20_000,
+    ) -> SimMetrics:
+        """
+        Execute a complete episode using `policy_fn(obs, action_mask, node_id, t_now_s, task_idx) -> action`.
+        """
+        metrics, _ = self._run_episode_loop(
+            policy_fn=policy_fn,
+            pass_global_state=False,
+            bin_callback=bin_callback,
+            drain_max_s=drain_max_s,
+        )
+        return metrics
+
+    def run_marl_episode(
+        self,
+        policy_fn: Callable[[np.ndarray, np.ndarray, np.ndarray, int, float, int], int],
+        bin_callback: Optional[Callable[[int, float], None]] = None,
+        drain_max_s: int = 20_000,
+    ) -> Tuple[SimMetrics, Dict[int, ResolvedOutcome]]:
+        """
+        Execute a complete MARL episode using
+        `policy_fn(obs, action_mask, global_state, node_id, t_now_s, task_idx) -> action`
+        and return `(SimMetrics, outcomes_by_task_id)` for delayed reward attribution.
+        """
+        return self._run_episode_loop(
+            policy_fn=policy_fn,
+            pass_global_state=True,
+            bin_callback=bin_callback,
+            drain_max_s=drain_max_s,
+        )
 
     def summarize_metrics(self) -> SimMetrics:
         total = len(self.outcomes)
