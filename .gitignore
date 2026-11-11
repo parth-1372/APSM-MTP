@@ -1,11 +1,26 @@
 # Project-specific files
 *.zip
-src/experiments/
-src/data/
-src/assets/
+*.tar.gz
+/src/experiments/
+/src/data/
+/src/assets/
+/alibaba 2017/
 
-data/
-assets/
+/data/*
+!/data/networks/
+!/data/alibaba_v2017/
+/data/alibaba_v2017/*
+!/data/alibaba_v2017/schema.csv
+!/data/alibaba_v2017/processed/
+/data/alibaba_v2017/processed/*
+!/data/alibaba_v2017/processed/curated_6n_30s.npz
+!/data/alibaba_v2017/processed/metadata_6n.json
+!/data/alibaba_v2017/processed/tasks_6n.parquet
+
+/assets/*
+!/assets/porto_cells.parquet
+
+/.vscode/
 MTP.pem
 
 # Byte-compiled / optimized / DLL files
@@ -133,12 +148,12 @@ celerybeat.pid
 
 # Environments
 .env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+/.venv
+/env/
+/venv/
+/ENV/
+/env.bak/
+/venv.bak/
 
 # Spyder project settings
 .spyderproject
