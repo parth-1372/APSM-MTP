@@ -251,6 +251,7 @@ class TaskOffloadingSim:
         self._link_rx_heap: List[Tuple[float, int, ActiveTask]] = []
         self._beacon_heap: List[Tuple[float, int, int, int, PeerCacheEntry]] = []
         self._ack_heap: List[Tuple[float, int, ActiveTask, bool, str, float]] = []
+        self._wire_cnt: np.ndarray = np.zeros((n, n), dtype=np.int32)
 
         # Per-node neighbor cache indexed by receiver i -> sender j
         self.neighbor_cache: List[Dict[int, PeerCacheEntry]] = [{} for _ in range(n)]
@@ -465,7 +466,7 @@ class TaskOffloadingSim:
         # 2. Self forecast & semantic surprise (3 dims; 0 if no forecaster attached)
         y_hat_i = float(self.cur_y_hat[node_id]) if self.forecast_matrix is not None else 0.0
         obs[4] = y_hat_i
-        obs[5] = (y_hat_i - float(self.cur_load_norm[node_id])) if self.forecast_matrix is not None else 0.0
+        obs[5] = 0.0
         obs[6] = float(self.cur_surprise[node_id]) if self.surprise_matrix is not None else 0.0
 
         # 3. Current arriving task features (4 dims)
@@ -491,7 +492,7 @@ class TaskOffloadingSim:
                 obs[base + 3] = self._node_avail_cpu_norm(peer_id)
                 obs[base + 4] = len(self.active_tasks[peer_id]) / float(self.sim.q_max)
                 obs[base + 5] = float(self.cur_y_hat[peer_id]) if self.forecast_matrix is not None else 0.0
-                obs[base + 6] = 0.0
+                obs[base + 6] = min(1.0, float(self._wire_cnt[node_id, peer_id]) / float(self.sim.q_max))
                 obs[base + 7] = 0.0
             else:
                 entry = self.neighbor_cache[node_id].get(peer_id)
@@ -518,8 +519,12 @@ class TaskOffloadingSim:
         yhats = self.cur_y_hat if self.forecast_matrix is not None else np.zeros(self.n_nodes, dtype=np.float32)
         nbr_qs = np.array([qs[p] for p in nbrs], dtype=np.float32) if nbrs else np.zeros(1, dtype=np.float32)
         nbr_av = np.array([avails[p] for p in nbrs], dtype=np.float32) if nbrs else np.zeros(1, dtype=np.float32)
-        total_inflight = sum(
-            len(self.inflight_records[u][v]) for u in range(self.n_nodes) for v in self.inflight_records[u]
+        total_inflight = (
+            float(self._wire_cnt.sum())
+            if self.telemetry_mode == "oracle"
+            else sum(
+                len(self.inflight_records[u][v]) for u in range(self.n_nodes) for v in self.inflight_records[u]
+            )
         )
         summary = np.array(
             [
@@ -549,6 +554,9 @@ class TaskOffloadingSim:
         # Step A: Process arriving offloaded tasks (strictly max_hops=1, NEVER routed again)
         while self._link_rx_heap and self._link_rx_heap[0][0] <= t_now_s + 1e-9:
             arr_peer_ts, _, task = heapq.heappop(self._link_rx_heap)
+            self._wire_cnt[task.origin_id, task.target_id] = max(
+                0, int(self._wire_cnt[task.origin_id, task.target_id]) - 1
+            )
             if self.verify_invariants:
                 assert task.already_offloaded is True and task.hop_count == 1
             if arr_peer_ts > task.deadline_s:
@@ -670,6 +678,7 @@ class TaskOffloadingSim:
         else:
             arr_peer_ts = t_now_s + net_delay_s
             self.inflight_records[i][target_id][task.task_id] = arr_peer_ts
+            self._wire_cnt[i, target_id] += 1
             self._event_seq += 1
             heapq.heappush(self._link_rx_heap, (arr_peer_ts, self._event_seq, task))
 

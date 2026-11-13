@@ -435,6 +435,101 @@ def _run_neural_variant(
     return out
 
 
+def fast_causal_walkforward_lstm(
+    dataset: CuratedTraceDataset,
+    cfg: Phase3Config,
+    use_ema_anchor: bool = True,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Fast strictly causal batched walk-forward EdgeLSTMForecaster on [L .. train_end_bin).
+    Zero future leakage; pooled mini-batches across nodes for high speed.
+    """
+    L = dataset.lookback_L
+    n = dataset.n_nodes
+    fp = np.zeros((n, dataset.n_bins), dtype=np.float32)
+    sp = np.zeros((n, dataset.n_bins), dtype=np.float32)
+    crit = nn.MSELoss()
+
+    nb = 12
+    step = max(8, (dataset.train_end_bin - L) // nb)
+    bounds = [L + k * step for k in range(nb)] + [dataset.train_end_bin]
+
+    # Warmup first block strictly from causal ema_lag1
+    gates = [OnlineSemanticGate(cfg.apsm) for _ in range(n)]
+    for t in range(L, bounds[1]):
+        for i in range(n):
+            yh = float(np.clip(dataset.features[i, t - 1, 4], 0.0, 1.5))
+            fp[i, t] = yh
+            sp[i, t] = float(gates[i].current_norm_surprise)
+            gates[i].record_causal_residual(float(dataset.targets[i, t]), yh)
+
+    torch.manual_seed(cfg.seed)
+    m = EdgeLSTMForecaster(
+        input_dim=cfg.forecaster.input_dim,
+        hidden_dim=cfg.forecaster.hidden_dim,
+        num_layers=cfg.forecaster.num_layers,
+        dropout=0.05,
+        personalization="p1_shared",
+    )
+    opt = torch.optim.AdamW(m.parameters(), lr=2e-3, weight_decay=5e-4)
+    rng = np.random.default_rng(cfg.seed * 101 + 7)
+
+    for bi in range(1, len(bounds) - 1):
+        tr_end, ev_end = bounds[bi], bounds[bi + 1]
+        xs_all, ys_all = [], []
+        for i in range(n):
+            xb, yb = make_supervised_windows(dataset.features[i], dataset.targets[i], L, L, tr_end)
+            xs_all.append(xb)
+            ys_all.append(yb)
+        X_tr = np.concatenate(xs_all, axis=0)
+        Y_tr = np.concatenate(ys_all, axis=0)
+        if len(X_tr) > 4096:
+            ix_sub = rng.choice(len(X_tr), size=4096, replace=False)
+            X_tr = X_tr[ix_sub]
+            Y_tr = Y_tr[ix_sub]
+        xt = torch.from_numpy(X_tr)
+        yt = torch.from_numpy(Y_tr)
+        ep_cnt = 14 if bi == 1 else 5
+        bs = min(256, len(X_tr))
+        m.train()
+        for _ in range(ep_cnt):
+            perm = rng.permutation(len(X_tr))
+            for s0 in range(0, len(X_tr), bs):
+                ix = perm[s0 : s0 + bs]
+                opt.zero_grad()
+                crit(m(xt[ix]), yt[ix]).backward()
+                torch.nn.utils.clip_grad_norm_(m.parameters(), 2.0)
+                opt.step()
+        m.eval()
+
+        # Batched causal eval over [tr_end, ev_end) + periodic fast online adapt every 8 bins
+        for t in range(tr_end, ev_end):
+            w_batch = np.stack([dataset.features[i, t - L : t] for i in range(n)], axis=0)
+            with torch.no_grad():
+                lstm_p = m.predict_nonneg(torch.from_numpy(w_batch)).numpy()
+            ema_p = np.clip(dataset.features[:, t - 1, 4], 0.0, 1.5)
+            yh_vec = (0.5 * lstm_p + 0.5 * ema_p) if use_ema_anchor else lstm_p
+            for i in range(n):
+                fp[i, t] = float(yh_vec[i])
+                sp[i, t] = float(gates[i].current_norm_surprise)
+                gates[i].record_causal_residual(float(dataset.targets[i, t]), float(yh_vec[i]))
+            if (t - tr_end) % 8 == 7 and t >= L + 16:
+                lo_t = max(L, t - 24)
+                xb_r = np.concatenate([dataset.features[:, k - L : k] for k in range(lo_t, t + 1)], axis=0)
+                yb_r = dataset.targets[:, lo_t : t + 1].reshape(-1).astype(np.float32)
+                if len(xb_r) > 256:
+                    ix = rng.choice(len(xb_r), size=256, replace=False)
+                    xb_r = xb_r[ix]
+                    yb_r = yb_r[ix]
+                m.train()
+                opt.zero_grad()
+                crit(m(torch.from_numpy(xb_r)), torch.from_numpy(yb_r)).backward()
+                torch.nn.utils.clip_grad_norm_(m.parameters(), 2.0)
+                opt.step()
+                m.eval()
+    return fp, sp
+
+
 def generate_causal_forecast_matrices(
     variant_mode: str,
     dataset: CuratedTraceDataset,
@@ -444,7 +539,7 @@ def generate_causal_forecast_matrices(
     """
     Generate strictly causal `(N, n_bins)` forecast & normalized surprise matrices across
     ALL splits `[train .. val .. test]`:
-      - `train` `[L .. train_end_bin)`: 4-block expanding walk-forward OOS forecasts
+      - `train` `[L .. train_end_bin)`: fast strictly causal walk-forward OOS forecasts
         so MARL training observes realistic OOS forecast errors & surprise spikes without train leakage.
       - `val` & `test` `[train_end_bin .. n_bins)`: exact online Stage 3 rollout pretrained strictly on `[0 .. train_end_bin)`.
     Supported `variant_mode`: `"local_lstm"`, `"gl_baseline"`, `"apsm_val_delta"`, `"apsm_h1"`, `"oracle"`.
@@ -456,7 +551,7 @@ def generate_causal_forecast_matrices(
 
     if variant_mode == "oracle":
         # Ideal next-step causal-indexed benchmark upper bound: exact target for that bin, zero surprise
-        forecast_mat[:, :] = dataset.targets
+        forecast_mat[:, :] = np.clip(dataset.targets, 0.0, 1.0)
         return {
             "variant": "oracle",
             "forecast_matrix": forecast_mat,
@@ -473,6 +568,33 @@ def generate_causal_forecast_matrices(
         "val_delta" if variant_mode == "apsm_val_delta" else "h1_residual"
     )
     v_cfg = replace(base_cfg, apsm=replace(base_cfg.apsm, mode=apsm_mode))
+
+    if variant_mode == "local_lstm":
+        # Fast strictly causal walk-forward over train split
+        fp_train, sp_train = fast_causal_walkforward_lstm(dataset, v_cfg, use_ema_anchor=True)
+        forecast_mat[:, : dataset.train_end_bin] = fp_train[:, : dataset.train_end_bin]
+        surprise_mat[:, : dataset.train_end_bin] = sp_train[:, : dataset.train_end_bin]
+
+        # Exact Stage 3 rollout on [train_end_bin .. n_bins) (full val & test splits)
+        base_states, init_buffers = _pretrain_base_models(dataset, v_cfg, pretrain_history_frac=1.0)
+        res = _run_neural_variant(
+            variant_mode,
+            dataset,
+            topo,
+            v_cfg,
+            base_states,
+            init_buffers,
+            enable_gossip=False,
+            collect_trajectories=True,
+        )
+        ema_vt = np.clip(dataset.features[:, dataset.train_end_bin - 1 : -1, 4], 0.0, 1.5)
+        forecast_mat[:, dataset.train_end_bin :] = (
+            0.55 * res["forecast_matrix"][:, dataset.train_end_bin :] + 0.45 * ema_vt
+        )
+        surprise_mat[:, dataset.train_end_bin :] = res["surprise_matrix"][:, dataset.train_end_bin :]
+        res["forecast_matrix"] = forecast_mat
+        res["surprise_matrix"] = surprise_mat
+        return res
 
     # 1. Warmup early train bins [L .. block_bounds[1]) with causal EMA4 (strictly <= t-1 lags)
     tr_span = max(4, dataset.train_end_bin - L)
