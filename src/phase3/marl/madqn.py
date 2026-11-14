@@ -87,7 +87,7 @@ class MaskedDuelingQNet(nn.Module):
         self.hidden_dim = hidden_dim
         p_dim = hidden_dim // 2
 
-        self.self_enc = nn.Sequential(nn.Linear(8, hidden_dim), nn.LayerNorm(hidden_dim), nn.ReLU())
+        self.self_enc = nn.Sequential(nn.Linear(9, hidden_dim), nn.LayerNorm(hidden_dim), nn.ReLU())
         self.peer_enc = nn.Sequential(nn.Linear(7, p_dim), nn.LayerNorm(p_dim), nn.ReLU())
         base_ctx = hidden_dim + 2 * p_dim
 
@@ -122,7 +122,7 @@ class MaskedDuelingQNet(nn.Module):
 
     def forward(self, obs: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         bsz = obs.shape[0]
-        s_in = torch.cat([obs[:, :4], obs[:, 7:11]], dim=-1)
+        s_in = torch.cat([obs[:, :5], obs[:, 7:11]], dim=-1)
         p = obs[:, 11 : 11 + 8 * self.k_max].view(bsz, self.k_max, 8)
         p_in = torch.cat([p[:, :, :5], p[:, :, 6:8]], dim=-1)
         h_self = self.self_enc(s_in)
@@ -195,7 +195,7 @@ class _NumpyDuelingQRunner:
         return np.maximum(0.0, ((z - m) / np.sqrt(v + 1e-5)) * w + b)
 
     def q_values(self, obs: np.ndarray, mask: np.ndarray) -> np.ndarray:
-        s_in = np.concatenate([obs[:4], obs[7:11]])
+        s_in = np.concatenate([obs[:5], obs[7:11]])
         h_self = self._ln_relu_1d(s_in @ self.se[0] + self.se[1], self.se[2], self.se[3])
         v_idx = np.flatnonzero(mask[1 : 1 + self.k_max])
         nv = len(v_idx)
@@ -273,6 +273,7 @@ class _ReplayBuffer:
         self.rew = np.zeros(capacity, dtype=np.float32)
         self.next_obs = np.zeros((capacity, obs_dim), dtype=np.float32)
         self.next_mask = np.zeros((capacity, action_dim), dtype=bool)
+        self.done = np.zeros(capacity, dtype=bool)
         self.ptr = 0
         self.size = 0
 
@@ -284,6 +285,7 @@ class _ReplayBuffer:
         rew: np.ndarray,
         next_obs: np.ndarray,
         next_mask: np.ndarray,
+        done: np.ndarray,
     ) -> None:
         n = len(act)
         for k in range(n):
@@ -294,6 +296,7 @@ class _ReplayBuffer:
             self.rew[idx] = rew[k]
             self.next_obs[idx] = next_obs[k]
             self.next_mask[idx] = next_mask[k]
+            self.done[idx] = done[k]
             self.ptr = (self.ptr + 1) % self.cap
             self.size = min(self.cap, self.size + 1)
 
@@ -306,6 +309,7 @@ class _ReplayBuffer:
             self.rew[idx],
             self.next_obs[idx],
             self.next_mask[idx],
+            self.done[idx],
         )
 
 
@@ -403,13 +407,16 @@ class MADQNAgent:
 
         next_obs_arr = obs_arr.copy()
         next_mask_arr = mask_arr.copy()
+        done_arr = np.zeros(m, dtype=bool)
         for nid in range(sim.n_nodes):
             idxs = np.flatnonzero(node_arr == nid)
-            if len(idxs) > 1:
-                next_obs_arr[idxs[:-1]] = obs_arr[idxs[1:]]
-                next_mask_arr[idxs[:-1]] = mask_arr[idxs[1:]]
+            if len(idxs) > 0:
+                if len(idxs) > 1:
+                    next_obs_arr[idxs[:-1]] = obs_arr[idxs[1:]]
+                    next_mask_arr[idxs[:-1]] = mask_arr[idxs[1:]]
+                done_arr[idxs[-1]] = True
 
-        self.buf.add_batch(obs_arr, mask_arr, act_arr, rew_arr, next_obs_arr, next_mask_arr)
+        self.buf.add_batch(obs_arr, mask_arr, act_arr, rew_arr, next_obs_arr, next_mask_arr, done_arr)
 
         losses = []
         min_buf = min(256, self.marl.dqn_batch_size)
@@ -419,17 +426,19 @@ class MADQNAgent:
             n_updates = min(48, getattr(self.marl, "dqn_updates_per_episode", 48))
             bs = min(self.buf.size, getattr(self.marl, "dqn_batch_size", 256))
             for _ in range(n_updates):
-                bo, bm, ba, br, bno, bnm = self.buf.sample(bs, self.rng)
+                bo, bm, ba, br, bno, bnm, bd = self.buf.sample(bs, self.rng)
                 t_o = torch.from_numpy(bo).to(self.device)
                 t_m = torch.from_numpy(bm).to(self.device)
                 t_a = torch.from_numpy(ba).to(self.device)
                 t_r = torch.from_numpy(br).to(self.device)
                 t_no = torch.from_numpy(bno).to(self.device)
                 t_nm = torch.from_numpy(bnm).to(self.device)
+                t_d = torch.from_numpy(bd).to(self.device).float()
 
                 with torch.no_grad():
                     best_a = self.q_online(t_no, t_nm).argmax(dim=-1, keepdim=True)
-                    tgt = t_r + gamma * self.q_target(t_no, t_nm).gather(1, best_a).squeeze(-1)
+                    q_next = self.q_target(t_no, t_nm).gather(1, best_a).squeeze(-1)
+                    tgt = t_r + (1.0 - t_d) * gamma * q_next
 
                 q_taken = self.q_online(t_o, t_m).gather(1, t_a.unsqueeze(-1)).squeeze(-1)
                 loss = F.smooth_l1_loss(q_taken, tgt, beta=1.0)

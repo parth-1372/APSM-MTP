@@ -78,7 +78,7 @@ class CommunicationLedger:
         self.offload_count = sim.offload_count
         self.offload_data_bytes = sim.offload_data_bytes
         self.header_packets = sim.offload_count
-        self.header_bytes = sim.offload_count * sim.sim.task_header_bytes
+        self.header_bytes = sim.header_bytes
         self.ack_packets = sim.ack_packets
         self.ack_bytes = sim.ack_bytes
 
@@ -89,15 +89,16 @@ class CommunicationLedger:
             + self.ack_bytes
             + self.header_bytes
         )
-        # System Total Bytes = Control Plane + Offloaded Application Data Payloads
-        self.cb_system_bytes = self.cb_control_bytes + self.offload_data_bytes
+        # System Total Bytes = Control Plane + Pure Offload Payload Bytes
+        pure_payload = max(0, self.offload_data_bytes - self.header_bytes)
+        self.cb_system_bytes = self.cb_control_bytes + pure_payload
 
         if self.total_gossip_checks > 0:
             self.suppression_rate_pct = (
                 float(self.suppressed_checks) / float(self.total_gossip_checks) * 100.0
             )
         else:
-            self.suppression_rate_pct = 0.0
+            self.suppression_rate_pct = float("nan")
         return self
 
 
@@ -168,6 +169,10 @@ class LiveGossipManager:
         self.ledger = CommunicationLedger()
         self.cadence_bins = max(1, getattr(cfg.gossip, "cadence_bins", 2))
         self._last_step_bin = -1
+        self._has_stepped = False
+        self.all_y_true: List[float] = []
+        self.all_y_pred: List[float] = []
+        self.all_y_pers: List[float] = []
 
     def _deliver_due_messages(self, current_time_s: float) -> int:
         """Deliver arriving model messages and execute age-weighted merge."""
@@ -245,6 +250,22 @@ class LiveGossipManager:
         # 1. Deliver any arriving gossip model packets
         self._deliver_due_messages(t_now_s)
 
+        # Causal startup initialization: populate last_preds before observing past_bin
+        if not self._has_stepped:
+            self._has_stepped = True
+            if cur_bin > 0:
+                past_b = cur_bin - 1
+                L = self.lookback_L
+                for i in range(self.n_nodes):
+                    if past_b >= L:
+                        x_win = self.dataset.features[i, past_b - L : past_b]
+                    else:
+                        x_win = self.dataset.features[i, :past_b]
+                        pad = np.zeros((L - len(x_win), x_win.shape[-1]), dtype=np.float32)
+                        x_win = np.concatenate([pad, x_win], axis=0) if len(x_win) > 0 else np.zeros((L, 7), dtype=np.float32)
+                    xt = torch.from_numpy(x_win).unsqueeze(0).to(self.device)
+                    self.last_preds[i] = float(self.models[i].predict_nonneg(xt).item())
+
         # 2. Observe closed past bin
         if cur_bin > 0:
             past_bin = cur_bin - 1
@@ -252,6 +273,10 @@ class LiveGossipManager:
                 y_true = float(self.dataset.targets[i, past_bin])
                 y_pred = self.last_preds[i]
                 eps, tau, exceeded = self.gates[i].record_causal_residual(y_true, y_pred)
+                self.all_y_true.append(y_true)
+                self.all_y_pred.append(y_pred)
+                if past_bin > 0:
+                    self.all_y_pers.append(float(self.dataset.targets[i, past_bin - 1]))
 
                 # Append to online buffer for adaptation
                 if past_bin >= self.lookback_L:
@@ -293,11 +318,8 @@ class LiveGossipManager:
                     self.ledger.model_broadcast_rounds += 1
 
                     for j in nbrs:
-                        # Compute physical link transmission + propagation delay
-                        bw_bps = float(self.topo.bw_mbps[i, j]) * 1e6
-                        rtt_s = float(self.topo.rtt_s[i, j])
-                        link_delay = 0.5 * rtt_s + (8.0 * self.payload_bytes) / max(1e6, bw_bps)
-                        deliver_ts = t_now_s + link_delay
+                        # Schedule model transmission contending with physical link
+                        deliver_ts = sim.schedule_model_packet(i, j, self.payload_bytes, t_now_s)
 
                         msg = PendingModelMsg(
                             deliver_time_s=deliver_ts,
@@ -309,15 +331,6 @@ class LiveGossipManager:
 
                         self.ledger.model_packets += 1
                         self.ledger.model_bytes += self.payload_bytes
-
-                    # Synchronize simulator's dynamic model traffic counters
-                    sim.add_model_traffic(len(nbrs), len(nbrs) * self.payload_bytes)
-
-        elif is_cadence_slot and self.mode == "local_only":
-            # Count checks for consistent ledger accounting
-            for i in range(self.n_nodes):
-                self.ledger.total_gossip_checks += 1
-                self.ledger.suppressed_checks += 1
 
         # 4. Predict 1-step ahead workload for next bin & inject into simulator
         L = self.lookback_L
@@ -334,4 +347,25 @@ class LiveGossipManager:
             self.last_preds[i] = pred
             sim.cur_y_hat[i] = pred
             sim.cur_surprise[i] = self.gates[i].current_norm_surprise
+
+    def compute_forecasting_metrics(self) -> Dict[str, float]:
+        """Compute test-window direct forecasting metrics: MSE, RMSE, MAE, and persistence baseline."""
+        if not self.all_y_true:
+            return {"fc_mse": 0.0, "fc_rmse": 0.0, "fc_mae": 0.0, "fc_pers_mse": 0.0}
+        yt = np.array(self.all_y_true, dtype=np.float64)
+        yp = np.array(self.all_y_pred, dtype=np.float64)
+        mse = float(np.mean((yt - yp) ** 2))
+        rmse = float(math.sqrt(mse))
+        mae = float(np.mean(np.abs(yt - yp)))
+        if self.all_y_pers and len(self.all_y_pers) == len(yt):
+            ypers = np.array(self.all_y_pers, dtype=np.float64)
+            pers_mse = float(np.mean((yt - ypers) ** 2))
+        else:
+            pers_mse = float("nan")
+        return {
+            "fc_mse": mse,
+            "fc_rmse": rmse,
+            "fc_mae": mae,
+            "fc_pers_mse": pers_mse,
+        }
 

@@ -1,0 +1,23 @@
+{
+  "results/phase3/stage6_integrated_10n.json": "56a56b87c6c11527bc5a54922a6339ae81b57f9fce4242144f306c483f4df96c",
+  "results/phase3/stage6_10n_run_manifest.json": "4bbda21a8d48891a9e197c1b22fe45551805e2e27025bee24515962c13855d9e",
+  "results/phase3/stage3_forecast_gate_6n.json": "46c1047efaafe02fa5104da75e69a91c09680f4d72c587ed628342a4bcbec075",
+  "results/phase3/stage4_des_gate_6n.json": "bdceb126d8248727d27f0ad6d39435cd1c4a48a59d2b0d8f7de1520db8d92622",
+  "results/phase3/stage5_marl_gate_6n.json": "ce206ac1df74136b079311bff3d069c7be5ebc63edc482a2149eef2157f4f3c7",
+  "src/phase3/config.py": "555ae59f5ebdbde9609d6584f260b5463ae0379e81bc5e1ef2bd2b706444cbac",
+  "src/phase3/data/alibaba_loader.py": "982c4a1853244e2646fc2934d5d051c9e0f1a662ee0dc7bad11b34a731401956",
+  "src/phase3/data/topology.py": "dc47d5d0522a07e52958a5873c30e978330e1e89cd27d415a02b5c18da5f34ca",
+  "src/phase3/forecasting/models.py": "18b9ee421146b61af616b69431a19e5708d9553fa23dfe6e64a3ca3e47d0dd2a",
+  "src/phase3/forecasting/apsm.py": "8ac875dfac968f87d0498a58cc947ae5371b7d26656fab890b6bca58a46ced86",
+  "src/phase3/forecasting/gossip_runner.py": "708ab66d40e683b6a19c29aa06b9bb24a6fe0f72940d3a31a3c7948aa65620cf",
+  "src/phase3/integration/__init__.py": "b3eeec14a02ef9ed960a0291f8c8e365ca571f2efd9664a554ae9ef0ae83765f",
+  "src/phase3/integration/live_gossip_engine.py": "d4558554576fcc83835c74cd5661810bc98a4b34a54e73dc9ff0a9de186af627",
+  "src/phase3/env/task_simulator.py": "f1e7daaeddf741ba3e74d4000769c8d6363425c7785266c2d6b4f8e40cb6177b",
+  "src/phase3/env/baselines.py": "bd8441c04b5d2522155aaad57a77dac8a5b3e3d2e4a5c04b80bb72407e4b9706",
+  "src/phase3/marl/madqn.py": "6cb1dd98a67a87b5dc94f9c2e23197b7bdb0bc369f45d0b706556ee49e8c0672",
+  "src/phase3/run_stage5_validation.py": "b16ea41cd0e67ecc2617ee0354b60507b58073f300701a2db0f1e69d464680d5",
+  "src/phase3/run_stage6_integrated.py": "12868cc84c4d0a4da061b101f754fc56067ef4d5dbfd382087f1c120b180534d",
+  "src/phase3/analyze_stage6_results.py": "76844beff78533e6ff772123bcb19eb3bd46b51df0465a2af7a171011450b3f4",
+  "src/phase3/plot_stage6_results.py": "15292522286284f8f14c59db6b138a83219ea560c9f3d6055918b0b33196a7f0",
+  "tests/phase3/test_stage6_integration.py": "3607c69583637c69ea0f3ef64c6d75a41e66100c5f9be3e789ec638ee94f1085"
+}

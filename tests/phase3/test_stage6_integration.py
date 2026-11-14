@@ -22,6 +22,7 @@ from phase3.env.baselines import LocalOnlyPolicy, ReactiveGreedyPolicy
 from phase3.env.task_simulator import PreparedTaskTable, TaskOffloadingSim, prepare_task_table
 from phase3.forecasting.gossip_runner import _pretrain_base_models
 from phase3.integration.live_gossip_engine import CommunicationLedger, LiveGossipManager
+from phase3.marl.madqn import MaskedDuelingQNet, _NumpyDuelingQRunner
 
 
 @pytest.fixture(scope="module")
@@ -61,7 +62,8 @@ def test_channel_separation_and_ledger(stage6_setup):
     assert ledger.cb_control_bytes == (
         ledger.model_bytes + ledger.telemetry_bytes + ledger.ack_bytes + ledger.header_bytes
     )
-    assert ledger.cb_system_bytes == ledger.cb_control_bytes + ledger.offload_data_bytes
+    pure_payload = max(0, ledger.offload_data_bytes - ledger.header_bytes)
+    assert ledger.cb_system_bytes == ledger.cb_control_bytes + pure_payload
 
 
 def test_live_forecast_injection(stage6_setup):
@@ -130,30 +132,106 @@ def test_100_percent_task_conservation(stage6_setup):
 
 
 def test_strict_temporal_causality(stage6_setup):
-    """Verify that perturbing future target data does not change prior decisions."""
+    """
+    Verify Issue D1 fix: perturbing future target/feature data strictly after cutoff bin T_cut
+    does NOT leak into or change any decisions taken prior to T_cut under a real policy.
+    """
     cfg, ds, topo, sim_cfg = stage6_setup
+    b_start = ds.val_end_bin
+    b_end = ds.val_end_bin + 20
+    b_cut = ds.val_end_bin + 10
+    t_cut_s = ds.t_start_s + b_cut * ds.dt_bin_s
 
-    tbl = prepare_task_table(ds, sim_cfg, split="test", seed=42, start_bin=ds.val_end_bin, end_bin=ds.val_end_bin + 15)
+    tbl = prepare_task_table(ds, sim_cfg, split="test", seed=42, start_bin=b_start, end_bin=b_end)
 
-    # Run 1: original data
+    # Run 1: original data under ReactiveGreedyPolicy
+    policy1 = ReactiveGreedyPolicy(sim_cfg)
     actions1 = []
     mgr1 = LiveGossipManager(ds, topo, cfg, mode="apsm")
     sim1 = TaskOffloadingSim(ds, topo, tbl, cfg, has_live_forecaster=True)
     sim1.run_policy(
-        lambda o, m, nid, t, tid: (actions1.append(0) or 0),
+        lambda o, m, nid, t, tid: (actions1.append((t, policy1(o, m, nid, t, tid))) or actions1[-1][1]),
         bin_callback=lambda b, t: mgr1.on_bin_boundary(b, t, sim1),
     )
 
-    # Run 2: perturb targets far in future (last 5 bins of trace)
-    ds_perturbed = replace(ds, targets=ds.targets.copy())
-    ds_perturbed.targets[:, -3:] += 999.0
+    # Run 2: perturb targets strictly at and after b_cut
+    ds_perturbed = replace(ds, targets=ds.targets.copy(), features=ds.features.copy())
+    ds_perturbed.targets[:, b_cut:] += 5.0
+    ds_perturbed.features[:, b_cut:, :] += 2.0
 
+    policy2 = ReactiveGreedyPolicy(sim_cfg)
     actions2 = []
     mgr2 = LiveGossipManager(ds_perturbed, topo, cfg, mode="apsm")
     sim2 = TaskOffloadingSim(ds_perturbed, topo, tbl, cfg, has_live_forecaster=True)
     sim2.run_policy(
-        lambda o, m, nid, t, tid: (actions2.append(0) or 0),
+        lambda o, m, nid, t, tid: (actions2.append((t, policy2(o, m, nid, t, tid))) or actions2[-1][1]),
         bin_callback=lambda b, t: mgr2.on_bin_boundary(b, t, sim2),
     )
 
-    assert actions1 == actions2, "Future data perturbation must not affect earlier decisions"
+    prior1 = [act for (t, act) in actions1 if t < t_cut_s]
+    prior2 = [act for (t, act) in actions2 if t < t_cut_s]
+    assert len(prior1) > 0, "Should have prior actions before cutoff"
+    assert prior1 == prior2, "Decisions prior to cutoff must be bit-for-bit identical (zero temporal leakage)"
+
+
+def test_shared_physical_link_contention(stage6_setup):
+    """
+    Verify Issue C1 fix: when a model packet transmits on directed link (i, j),
+    an offloaded task scheduled on link (i, j) queues behind the model packet,
+    experiencing positive transmission queueing delay.
+    """
+    cfg, ds, topo, sim_cfg = stage6_setup
+    tbl = prepare_task_table(ds, sim_cfg, split="test", seed=42, start_bin=ds.val_end_bin, end_bin=ds.val_end_bin + 5)
+    sim = TaskOffloadingSim(ds, topo, tbl, cfg, has_live_forecaster=False)
+
+    i = 0
+    nbrs = topo.neighbor_slots(i)
+    j = nbrs[0]
+    t0 = tbl.t_ep_start_s
+    model_bytes = 56920
+
+    # Schedule model packet at t0 on directed link (i -> j)
+    tx_end_model, arr_model = sim._schedule_link_tx(i, j, model_bytes, t0)
+    bw_bps = float(topo.bw_mbps[i, j]) * 1e6
+    expected_d_tx = (8.0 * model_bytes) / bw_bps
+    assert abs((tx_end_model - t0) - expected_d_tx) < 1e-6
+    assert sim.link_free_at[i, j] == tx_end_model
+
+    # Now schedule a task on the same directed link (i -> j) at t0 + 1ms (while model is transmitting)
+    t_task = t0 + 0.001
+    task_payload = 100000
+    task_total = task_payload + sim.sim.task_header_bytes
+    tx_end_task, arr_task = sim._schedule_link_tx(i, j, task_total, t_task)
+
+    # Task transmission start MUST be queued until tx_end_model
+    task_d_tx = (8.0 * task_total) / bw_bps
+    assert abs(tx_end_task - (tx_end_model + task_d_tx)) < 1e-6, "Task must queue behind model packet on shared link"
+    assert tx_end_task > tx_end_model
+
+
+def test_madqn_pytorch_numpy_parity():
+    """Verify Issue C7 fix: float32 numerical parity between PyTorch MaskedDuelingQNet and NumPy runner."""
+    torch.manual_seed(42)
+    np.random.seed(42)
+    obs_dim = 75
+    action_dim = 9
+    qnet = MaskedDuelingQNet(obs_dim=obs_dim, action_dim=action_dim, hidden_dim=96, fc_scale=0.008)
+    qnet.eval()
+    runner = _NumpyDuelingQRunner(qnet)
+
+    for i in range(10):
+        obs = np.random.randn(obs_dim).astype(np.float32)
+        obs[0:7] = np.abs(obs[0:7])
+        mask = np.ones(action_dim, dtype=bool)
+        if i % 2 == 0:
+            mask[2] = False
+            mask[5] = False
+
+        q_np = runner.q_values(obs, mask)
+        t_obs = torch.from_numpy(obs).unsqueeze(0)
+        t_mask = torch.from_numpy(mask).unsqueeze(0)
+        with torch.no_grad():
+            q_pt = qnet(t_obs, t_mask).squeeze(0).cpu().numpy()
+
+        max_diff = np.max(np.abs(q_np[mask] - q_pt[mask]))
+        assert max_diff < 1e-4, f"Parity mismatch at iter {i}: max_diff={max_diff}"

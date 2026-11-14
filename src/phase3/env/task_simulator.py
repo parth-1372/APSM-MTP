@@ -96,6 +96,7 @@ class SimMetrics:
     offload_count: int
     offload_rate_pct: float
     offload_data_bytes: int
+    header_bytes: int
     telemetry_packets: int
     telemetry_bytes: int
     telemetry_suppressed: int
@@ -103,6 +104,8 @@ class SimMetrics:
     ack_bytes: int
     model_packets: int
     model_bytes: int
+    cb_control_bytes: int
+    cb_system_bytes: int
     cb_total_bytes: int
     mean_cpu_util: float
     jains_fairness: float
@@ -278,6 +281,7 @@ class TaskOffloadingSim:
         # Telemetry & H2 counters
         self.offload_count: int = 0
         self.offload_data_bytes: int = 0
+        self.header_bytes: int = 0
         self.telemetry_packets: int = 0
         self.telemetry_bytes: int = 0
         self.telemetry_suppressed: int = 0
@@ -297,6 +301,47 @@ class TaskOffloadingSim:
     def add_model_traffic(self, packets: int, n_bytes: int) -> None:
         self.dynamic_model_packets += int(packets)
         self.dynamic_model_bytes += int(n_bytes)
+
+    def _schedule_link_tx(
+        self,
+        origin: int,
+        target: int,
+        size_bytes: int,
+        t_now_s: float,
+        min_start: Optional[float] = None,
+    ) -> Tuple[float, float]:
+        """
+        Schedule transmission of `size_bytes` on directed physical link (origin -> target).
+        Enforces FIFO serialization across all packet classes (tasks, ACKs, beacons, models)
+        sharing the same link bandwidth BW[origin, target].
+        Returns (tx_end, arrival_ts).
+        """
+        bw_bps = float(self.topo.bw_mbps[origin, target]) * 1e6
+        rtt_s = float(self.topo.rtt_s[origin, target])
+        start_earliest = max(t_now_s, min_start) if min_start is not None else t_now_s
+        tx_start = max(start_earliest, float(self.link_free_at[origin, target]))
+        d_tx = (8.0 * float(size_bytes)) / max(1e6, bw_bps)
+        tx_end = tx_start + d_tx
+        self.link_free_at[origin, target] = tx_end
+        arrival_ts = tx_end + 0.5 * rtt_s
+        return tx_end, arrival_ts
+
+    def schedule_model_packet(
+        self,
+        sender_id: int,
+        receiver_id: int,
+        size_bytes: int,
+        t_now_s: float,
+    ) -> float:
+        """
+        Schedule transmission of a model packet on directed link (sender_id -> receiver_id).
+        Reserves physical link capacity, contending with tasks, beacons, and ACKs.
+        Returns deliver_ts.
+        """
+        _, deliver_ts = self._schedule_link_tx(sender_id, receiver_id, size_bytes, t_now_s)
+        self.dynamic_model_packets += 1
+        self.dynamic_model_bytes += int(size_bytes)
+        return deliver_ts
 
     def _causal_bg_bin(self, t_now_s: float) -> int:
         dt = float(self.dataset.dt_bin_s)
@@ -396,9 +441,7 @@ class TaskOffloadingSim:
             self._emit_outcome(task, dropped, drop_reason, event_ts)
             return
         i, j = task.origin_id, task.target_id
-        bw_bps = float(self.topo.bw_mbps[j, i]) * 1e6
-        ack_tx = float(self.topo.rtt_s[j, i]) * 0.5 + (8.0 * self.sim.ack_bytes) / max(1e6, bw_bps)
-        deliver_ts = event_ts + ack_tx
+        _, deliver_ts = self._schedule_link_tx(j, i, self.sim.ack_bytes, event_ts, min_start=event_ts)
         self._event_seq += 1
         heapq.heappush(self._ack_heap, (deliver_ts, self._event_seq, task, dropped, drop_reason, event_ts))
 
@@ -406,7 +449,7 @@ class TaskOffloadingSim:
         if self.telemetry_mode in ("none", "oracle"):
             return
 
-        beacon_bits = 8.0 * self.sim.telemetry_beacon_bytes
+        beacon_bytes = self.sim.telemetry_beacon_bytes
         for j in range(self.n_nodes):
             q_norm = len(self.active_tasks[j]) / float(self.sim.q_max)
             avail_cpu_n = self._node_avail_cpu_norm(j)
@@ -432,10 +475,9 @@ class TaskOffloadingSim:
             self._apsm_t_supp_streak[j] = 0
             self._last_tx_state[j] = (q_norm, avail_cpu_n, yhat_j)
             for nbr in self.topo.neighbor_slots(j):
-                bw_bps = float(self.topo.bw_mbps[j, nbr]) * 1e6
-                tx_lat = float(self.topo.rtt_s[j, nbr]) * 0.5 + beacon_bits / max(1e6, bw_bps)
+                _, arr_nbr_ts = self._schedule_link_tx(j, nbr, beacon_bytes, t_now_s)
                 entry = PeerCacheEntry(
-                    last_rx_ts=t_now_s + tx_lat,
+                    last_rx_ts=arr_nbr_ts,
                     last_created_ts=t_now_s,
                     q_norm=float(q_norm),
                     avail_cpu_norm=float(avail_cpu_n),
@@ -443,9 +485,9 @@ class TaskOffloadingSim:
                     y_hat=yhat_j,
                 )
                 self._event_seq += 1
-                heapq.heappush(self._beacon_heap, (t_now_s + tx_lat, self._event_seq, nbr, j, entry))
+                heapq.heappush(self._beacon_heap, (arr_nbr_ts, self._event_seq, nbr, j, entry))
                 self.telemetry_packets += 1
-                self.telemetry_bytes += self.sim.telemetry_beacon_bytes
+                self.telemetry_bytes += beacon_bytes
 
     def build_observation(
         self, node_id: int, task_idx: int, t_now_s: float
@@ -646,18 +688,14 @@ class TaskOffloadingSim:
             target_id = peer_id
             already_offloaded = True
             hop_count = 1
-            bw_bps = float(self.topo.bw_mbps[i, peer_id]) * 1e6
-            rtt_s = float(self.topo.rtt_s[i, peer_id])
             payload_b = int(self.tasks.payload_bytes[task_idx])
-            tx_start = max(t_now_s, float(self.link_free_at[i, peer_id]))
-            d_tx = (8.0 * payload_b) / max(1e6, bw_bps)
-            tx_end = tx_start + d_tx
-            self.link_free_at[i, peer_id] = tx_end
-            arr_peer_ts = tx_end + 0.5 * rtt_s
+            total_task_bytes = payload_b + self.sim.task_header_bytes
+            _, arr_peer_ts = self._schedule_link_tx(i, peer_id, total_task_bytes, t_now_s)
             net_delay_s = arr_peer_ts - t_now_s
             target_util_dec = self._node_util_norm(peer_id)
             self.offload_count += 1
             self.offload_data_bytes += payload_b + self.sim.task_header_bytes
+            self.header_bytes += self.sim.task_header_bytes
 
         task = ActiveTask(
             task_id=task_idx,
@@ -827,6 +865,8 @@ class TaskOffloadingSim:
         total_model_pkts = self.extra_model_packets + self.dynamic_model_packets
         total_model_bytes = self.extra_model_bytes + self.dynamic_model_bytes
         cb_total = total_model_bytes + self.telemetry_bytes + self.ack_bytes
+        cb_control = cb_total + self.header_bytes
+        cb_system = cb_total + self.offload_data_bytes
         return SimMetrics(
             total_tasks=total,
             completed_on_time=on_time,
@@ -844,6 +884,7 @@ class TaskOffloadingSim:
             offload_count=self.offload_count,
             offload_rate_pct=(self.offload_count / total * 100.0) if total > 0 else 0.0,
             offload_data_bytes=self.offload_data_bytes,
+            header_bytes=self.header_bytes,
             telemetry_packets=self.telemetry_packets,
             telemetry_bytes=self.telemetry_bytes,
             telemetry_suppressed=self.telemetry_suppressed,
@@ -851,6 +892,8 @@ class TaskOffloadingSim:
             ack_bytes=self.ack_bytes,
             model_packets=total_model_pkts,
             model_bytes=total_model_bytes,
+            cb_control_bytes=cb_control,
+            cb_system_bytes=cb_system,
             cb_total_bytes=cb_total,
             mean_cpu_util=float(u_arr.mean()),
             jains_fairness=jain,

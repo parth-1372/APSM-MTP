@@ -21,8 +21,11 @@ from dataclasses import asdict, replace
 import json
 import math
 from pathlib import Path
+import sys
 import time
 from typing import Any, Dict, List, Optional, Tuple
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import numpy as np
 import torch
@@ -130,8 +133,12 @@ def run_marl_arm(
     obs_dim = 11 + 8 * k_max
     action_dim = 1 + k_max
 
-    has_fc = arm in ("e3_madqn_local", "e3_madqn_apsm")
-    gossip_mode = "apsm" if arm == "e3_madqn_apsm" else ("local_only" if arm == "e3_madqn_local" else "off")
+    has_fc = arm in ("e3_madqn_local", "e3_madqn_gl", "e3_madqn_apsm")
+    gossip_mode = (
+        "apsm"
+        if arm == "e3_madqn_apsm"
+        else ("unfiltered_gl" if arm == "e3_madqn_gl" else ("local_only" if arm == "e3_madqn_local" else "off"))
+    )
 
     # Initialize Q networks
     fc_scale = 0.008 if has_fc else 0.0
@@ -205,13 +212,16 @@ def run_marl_arm(
 
             next_obs_arr = obs_arr.copy()
             next_mask_arr = mask_arr.copy()
+            done_arr = np.zeros(len(tid_l), dtype=bool)
             for nid in range(ds.n_nodes):
                 idxs = np.flatnonzero(node_arr == nid)
-                if len(idxs) > 1:
-                    next_obs_arr[idxs[:-1]] = obs_arr[idxs[1:]]
-                    next_mask_arr[idxs[:-1]] = mask_arr[idxs[1:]]
+                if len(idxs) > 0:
+                    if len(idxs) > 1:
+                        next_obs_arr[idxs[:-1]] = obs_arr[idxs[1:]]
+                        next_mask_arr[idxs[:-1]] = mask_arr[idxs[1:]]
+                    done_arr[idxs[-1]] = True
 
-            replay_buf.add_batch(obs_arr, mask_arr, act_arr, rew_arr, next_obs_arr, next_mask_arr)
+            replay_buf.add_batch(obs_arr, mask_arr, act_arr, rew_arr, next_obs_arr, next_mask_arr, done_arr)
 
         # GPU-accelerated minibatch updates
         ep_loss = 0.0
@@ -222,18 +232,19 @@ def run_marl_arm(
             losses = []
 
             for _ in range(n_updates):
-                bo, bm, ba, br, bno, bnm = replay_buf.sample(bs, rng)
+                bo, bm, ba, br, bno, bnm, bd = replay_buf.sample(bs, rng)
                 t_o = torch.from_numpy(bo).to(dev)
                 t_m = torch.from_numpy(bm).to(dev)
                 t_a = torch.from_numpy(ba).to(dev)
                 t_r = torch.from_numpy(br).to(dev)
                 t_no = torch.from_numpy(bno).to(dev)
                 t_nm = torch.from_numpy(bnm).to(dev)
+                t_d = torch.from_numpy(bd).to(dev).float()
 
                 with torch.no_grad():
-                    # Double-DQN target calculation
+                    # Double-DQN target calculation with terminal done discounting
                     best_a = q_online(t_no, t_nm).argmax(dim=-1, keepdim=True)
-                    tgt = t_r + gamma * q_target(t_no, t_nm).gather(1, best_a).squeeze(-1)
+                    tgt = t_r + (1.0 - t_d) * gamma * q_target(t_no, t_nm).gather(1, best_a).squeeze(-1)
 
                 q_taken = q_online(t_o, t_m).gather(1, t_a.unsqueeze(-1)).squeeze(-1)
                 loss = F.smooth_l1_loss(q_taken, tgt, beta=1.0)
@@ -276,15 +287,21 @@ def run_marl_arm(
                 bin_callback=val_cb,
             )
 
-            if val_metrics.mean_reward > best_val_reward:
+            eligible = (not has_fc) or (ep >= warmup)
+            if eligible and val_metrics.mean_reward > best_val_reward:
                 best_val_reward = val_metrics.mean_reward
                 best_ep = ep
                 best_weights = copy.deepcopy(q_online.state_dict())
 
+    # Fallback if no checkpoint was selected
+    if best_ep == 0:
+        best_ep = episodes
+        best_weights = copy.deepcopy(q_online.state_dict())
+
     # Load best checkpoint for final evaluation on test split
     q_online.load_state_dict(best_weights)
     q_online.eval()
-    q_online.fc_res.fc_active = has_fc  # Enable forecast branch if arm uses forecast
+    q_online.fc_res.fc_active = has_fc and (best_ep >= warmup)
 
     if ckpt_dir is not None:
         ckpt_dir.mkdir(parents=True, exist_ok=True)
@@ -295,6 +312,8 @@ def run_marl_arm(
                 "seed": seed,
                 "best_ep": best_ep,
                 "best_val_reward": best_val_reward,
+                "fc_active": has_fc and (best_ep >= warmup),
+                "warmup": warmup,
                 "state_dict": best_weights,
             },
             ckpt_file,
@@ -319,7 +338,13 @@ def run_marl_arm(
     ledger = (test_mgr.ledger.reconcile(test_sim)) if test_mgr is not None else CommunicationLedger().reconcile(test_sim)
     dur = time.perf_counter() - t_start
 
+    if test_mgr is not None:
+        fc_metrics = test_mgr.compute_forecasting_metrics()
+    else:
+        fc_metrics = {"fc_mse": None, "fc_rmse": None, "fc_mae": None, "fc_pers_mse": None}
+
     res = asdict(test_metrics)
+    res.update(fc_metrics)
     res.update(
         {
             "arm": arm,
@@ -335,6 +360,8 @@ def run_marl_arm(
             "suppressed_checks": ledger.suppressed_checks,
             "surprise_sends": ledger.surprise_sends,
             "heartbeat_sends": ledger.heartbeat_sends,
+            "has_forecast": has_fc,
+            "warmup_episode": warmup,
             "episode_history": episode_history,
         }
     )
@@ -352,25 +379,25 @@ def main():
     parser.add_argument(
         "--arms",
         nargs="+",
-        default=["b0_local", "e1_greedy", "e2_madqn", "e3_madqn_local", "e3_madqn_apsm"],
+        default=["b0_local", "e1_greedy", "e2_madqn", "e3_madqn_local", "e3_madqn_gl", "e3_madqn_apsm"],
         help="Benchmark arms to execute",
     )
     parser.add_argument(
         "--output",
         type=str,
-        default="results/phase3/stage6_integrated_10n.json",
+        default="results/phase3/stage6_integrated_10n_audited_v2.json",
         help="Path for final JSON results",
     )
     parser.add_argument(
         "--ckpt-dir",
         type=str,
-        default="results/phase3/checkpoints_stage6_10n",
+        default="results/phase3/checkpoints_stage6_10n_audited_v2",
         help="Directory to save model checkpoints",
     )
     parser.add_argument(
         "--manifest",
         type=str,
-        default="results/phase3/stage6_10n_run_manifest.json",
+        default="results/phase3/stage6_10n_audited_v2_manifest.json",
         help="Path for progress manifest JSON",
     )
     args = parser.parse_args()
@@ -438,7 +465,7 @@ def main():
                 res = run_baseline_b0(ds, topo, test_tbl, cfg, seed)
             elif arm == "e1_greedy":
                 res = run_baseline_e1(ds, topo, test_tbl, cfg, sim_cfg, seed)
-            elif arm in ("e2_madqn", "e3_madqn_local", "e3_madqn_apsm"):
+            elif arm in ("e2_madqn", "e3_madqn_local", "e3_madqn_gl", "e3_madqn_apsm"):
                 res = run_marl_arm(
                     arm=arm,
                     ds=ds,

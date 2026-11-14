@@ -37,6 +37,7 @@ ARM_LABELS = {
     "e1_greedy": "E1: ReactiveGreedy",
     "e2_madqn": "E2: Reactive MADQN",
     "e3_madqn_local": "E3: Local Forecast MADQN",
+    "e3_madqn_gl": "E3-GL: Unfiltered Gossip",
     "e3_madqn_apsm": "E3-APSM: Integrated Closed-Loop",
 }
 
@@ -45,6 +46,7 @@ ARM_COLORS = {
     "e1_greedy": "#1f77b4",      # Blue
     "e2_madqn": "#ff7f0e",       # Orange
     "e3_madqn_local": "#2ca02c",  # Green
+    "e3_madqn_gl": "#9467bd",     # Purple
     "e3_madqn_apsm": "#d62728",   # Crimson / Red
 }
 
@@ -58,7 +60,8 @@ def generate_all_plots(results_path: str, plots_dir: str, calib_path: Optional[s
     out_dir.mkdir(parents=True, exist_ok=True)
     records = load_results(Path(results_path))
 
-    arms = ["b0_local", "e1_greedy", "e2_madqn", "e3_madqn_local", "e3_madqn_apsm"]
+    all_possible_arms = ["b0_local", "e1_greedy", "e2_madqn", "e3_madqn_local", "e3_madqn_gl", "e3_madqn_apsm"]
+    arms = [a for a in all_possible_arms if any(r.get("arm") == a for r in records)]
     # Group by arm
     arm_data: Dict[str, List[Dict[str, Any]]] = {a: [] for a in arms}
     for r in records:
@@ -225,17 +228,21 @@ def generate_all_plots(results_path: str, plots_dir: str, calib_path: Optional[s
 
     # 9. Fig 09: Model Bytes Comparison
     fig, ax = plt.subplots(figsize=(8, 5))
-    # Unfiltered GL baseline would send every cadence check (172 checks x 10 nodes x 3.2 avg degree x 56.9KB)
-    total_checks = np.mean([x.get("total_gossip_checks", 1720) for x in arm_data["e3_madqn_apsm"]])
-    unfiltered_bytes = total_checks * 3.2 * 56920  # Theoretical baseline
-    apsm_bytes = np.mean([x["model_bytes"] for x in arm_data["e3_madqn_apsm"]])
-    comp_labels = ["B0 / E1 / E2 / E3 (0 B)", "E3-APSM (Live Filtered)", "Unfiltered Gossip (Theoretical)"]
+    apsm_bytes = np.mean([x["model_bytes"] for x in arm_data["e3_madqn_apsm"]]) if arm_data.get("e3_madqn_apsm") else 0.0
+    if arm_data.get("e3_madqn_gl") and len(arm_data["e3_madqn_gl"]) > 0:
+        unfiltered_bytes = np.mean([x["model_bytes"] for x in arm_data["e3_madqn_gl"]])
+        unfiltered_label = "E3-GL: Unfiltered Gossip (Measured)"
+    else:
+        total_checks = np.mean([x.get("total_gossip_checks", 1720) for x in arm_data["e3_madqn_apsm"]])
+        unfiltered_bytes = total_checks * 3.2 * 56920  # Theoretical baseline
+        unfiltered_label = "Unfiltered Gossip (Theoretical)"
+    comp_labels = ["B0 / E1 / E2 / E3-Local (0 B)", "E3-APSM (Live Filtered)", unfiltered_label]
     comp_vals = [0, apsm_bytes / 1e6, unfiltered_bytes / 1e6]
-    bars = ax.bar(comp_labels, comp_vals, color=["#7f7f7f", "#d62728", "#1f77b4"], alpha=0.88, edgecolor="black")
+    bars = ax.bar(comp_labels, comp_vals, color=["#7f7f7f", "#d62728", "#9467bd"], alpha=0.88, edgecolor="black")
     ax.set_ylabel("Model Exchange Volume (MB)", fontweight="bold")
     ax.set_title("Fig 9: Gossip Learning Model Exchange Volume (MB)", fontweight="bold")
     for b, val in zip(bars, comp_vals):
-        ax.text(b.get_x() + b.get_width() / 2, val + 5.0, f"{val:.1f} MB", ha="center", va="bottom", fontweight="bold")
+        ax.text(b.get_x() + b.get_width() / 2, val + 2.0, f"{val:.1f} MB", ha="center", va="bottom", fontweight="bold")
     plt.savefig(out_dir / "fig09_model_bytes_comparison_10n.png")
     plt.close()
 
@@ -270,9 +277,9 @@ def generate_all_plots(results_path: str, plots_dir: str, calib_path: Optional[s
     plt.close()
 
     # 12-14: Training Curves (Fig 12, 13, 14)
-    marl_arms = ["e2_madqn", "e3_madqn_local", "e3_madqn_apsm"]
+    marl_arms = [a for a in ["e2_madqn", "e3_madqn_local", "e3_madqn_gl", "e3_madqn_apsm"] if a in arm_data and len(arm_data[a]) > 0]
     # Check if episode_history exists in records
-    sample_hist = arm_data[marl_arms[0]][0].get("episode_history", [])
+    sample_hist = arm_data[marl_arms[0]][0].get("episode_history", []) if marl_arms else []
     if sample_hist:
         n_eps = len(sample_hist)
         eps_axis = np.arange(1, n_eps + 1)
@@ -361,7 +368,7 @@ def generate_all_plots(results_path: str, plots_dir: str, calib_path: Optional[s
         plt.close()
 
     # 16. Fig 16: Seed Sensitivity Paired Difference
-    fig, ax = plt.subplots(figsize=(9, 5))
+    fig, ax = plt.subplots(figsize=(10, 5))
     seeds = sorted(list(set(x["seed"] for x in records)))
     deltas_e1_b0 = [
         next(x["tsr_pct"] for x in arm_data["e1_greedy"] if x["seed"] == s)
@@ -383,13 +390,22 @@ def generate_all_plots(results_path: str, plots_dir: str, calib_path: Optional[s
         - next(x["tsr_pct"] for x in arm_data["e2_madqn"] if x["seed"] == s)
         for s in seeds
     ]
+    has_gl = "e3_madqn_gl" in arm_data and len(arm_data["e3_madqn_gl"]) > 0
+    if has_gl:
+        deltas_apsm_gl = [
+            next(x["tsr_pct"] for x in arm_data["e3_madqn_apsm"] if x["seed"] == s)
+            - next(x["tsr_pct"] for x in arm_data["e3_madqn_gl"] if x["seed"] == s)
+            for s in seeds
+        ]
 
     idx = np.arange(len(seeds))
-    w = 0.2
+    w = 0.16 if has_gl else 0.2
     ax.bar(idx - 1.5 * w, deltas_e1_b0, width=w, label="Δ(E1 - B0)", color="#1f77b4")
     ax.bar(idx - 0.5 * w, deltas_e2_e1, width=w, label="Δ(E2 - E1)", color="#ff7f0e")
     ax.bar(idx + 0.5 * w, deltas_e3_e2, width=w, label="Δ(E3 - E2)", color="#2ca02c")
     ax.bar(idx + 1.5 * w, deltas_apsm_e2, width=w, label="Δ(E3_APSM - E2)", color="#d62728")
+    if has_gl:
+        ax.bar(idx + 2.5 * w, deltas_apsm_gl, width=w, label="Δ(APSM - GL)", color="#9467bd")
     ax.set_xticks(idx)
     ax.set_xticklabels([f"Seed {s}" for s in seeds])
     ax.set_ylabel("Pairwise TSR Difference (Percentage Points)", fontweight="bold")
@@ -434,12 +450,41 @@ def generate_all_plots(results_path: str, plots_dir: str, calib_path: Optional[s
     plt.savefig(out_dir / "fig18_tradeoff_tsr_vs_bandwidth_10n.png")
     plt.close()
 
-    print(f"Successfully generated all 18 publication-quality figures in {out_dir}!")
+    # 19. Fig 19: Direct Forecasting Error Comparison
+    fc_arms = [a for a in ["e3_madqn_local", "e3_madqn_gl", "e3_madqn_apsm"] if a in arm_data and len(arm_data[a]) > 0]
+    if fc_arms and "fc_mse" in arm_data[fc_arms[0]][0]:
+        fig, ax = plt.subplots(figsize=(8, 5))
+        mses = [np.mean([x["fc_mse"] for x in arm_data[a]]) for a in fc_arms]
+        pers_mse = np.mean([x.get("fc_pers_mse", 0.0517) for x in arm_data[fc_arms[0]]])
+        bar_labels = [ARM_LABELS[a] for a in fc_arms] + ["Persistence Baseline"]
+        bar_vals = mses + [pers_mse]
+        bar_colors = [ARM_COLORS[a] for a in fc_arms] + ["#7f7f7f"]
+        bars = ax.bar(bar_labels, bar_vals, color=bar_colors, alpha=0.88, edgecolor="black")
+        ax.set_ylabel("Mean Squared Error (Normalized Load)", fontweight="bold")
+        ax.set_title("Fig 19: Direct Test-Window Workload Forecasting Error (MSE)", fontweight="bold")
+        for b, val in zip(bars, bar_vals):
+            ax.text(b.get_x() + b.get_width() / 2, val + 0.001, f"{val:.4f}", ha="center", va="bottom", fontweight="bold")
+        plt.xticks(rotation=20, ha="right")
+        plt.savefig(out_dir / "fig19_forecasting_error_comparison_10n.png")
+        plt.close()
+
+    print(f"Successfully generated all publication-quality figures in {out_dir}!")
 
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Generate Phase 3 Stage 6 publication plots")
+    parser.add_argument("--results", type=str, default="results/phase3/stage6_integrated_10n_audited_v2.json")
+    parser.add_argument("--plots-dir", type=str, default="results/phase3/plots_stage6_10n_audited_v2")
+    args = parser.parse_args()
+
+    # Fallback to stage6_integrated_10n.json if audited_v2 does not exist yet
+    res_path = Path(args.results)
+    if not res_path.exists() and Path("results/phase3/stage6_integrated_10n.json").exists():
+        res_path = Path("results/phase3/stage6_integrated_10n.json")
+
     generate_all_plots(
-        results_path="results/phase3/stage6_integrated_10n.json",
-        plots_dir="results/phase3/plots_stage6_10n",
+        results_path=str(res_path),
+        plots_dir=args.plots_dir,
     )
 

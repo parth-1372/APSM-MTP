@@ -76,18 +76,10 @@ class OnlineSemanticGate:
         """
         Called at the close of each forecast bin `t` (strictly after observing realized y_true).
         Returns `(eps, tau, exceeded_threshold)`.
+        Prequential evaluation: threshold tau(t) is computed from prior history BEFORE
+        the current observation eps(t) is appended to the rolling window.
         """
         eps = float(abs(float(y_true) - float(y_pred)))
-        self._window.append(eps)
-        alpha = 0.1
-        if self._ewma_mean is None:
-            self._ewma_mean = eps
-            self._ewma_var = 0.0
-        else:
-            diff = eps - self._ewma_mean
-            self._ewma_mean = (1.0 - alpha) * self._ewma_mean + alpha * eps
-            self._ewma_var = (1.0 - alpha) * self._ewma_var + alpha * (diff * diff)
-
         tau = self._compute_tau()
         exceeded = len(self._window) >= self.cfg.min_obs and eps > tau
         if exceeded:
@@ -98,6 +90,17 @@ class OnlineSemanticGate:
             norm_s = min(eps / (tau + 1e-6), self.cfg.surprise_clip)
         else:
             norm_s = 0.0
+
+        # Prequentially append to window for future evaluations
+        self._window.append(eps)
+        alpha = 0.1
+        if self._ewma_mean is None:
+            self._ewma_mean = eps
+            self._ewma_var = 0.0
+        else:
+            diff = eps - self._ewma_mean
+            self._ewma_mean = (1.0 - alpha) * self._ewma_mean + alpha * eps
+            self._ewma_var = (1.0 - alpha) * self._ewma_var + alpha * (diff * diff)
 
         self._last_eps = eps
         self._last_tau = tau
@@ -110,6 +113,7 @@ class OnlineSemanticGate:
         """
         Bug-fixed Phase 2 validation-delta surprise (`B3/B5/B6` resolved):
         update lifetime best cleanly after minimum observation warmup without pushing raw val_loss into delta deque.
+        Prequentially evaluates tau BEFORE appending delta.
         """
         if self._best_val_loss is None:
             self._best_val_loss = float(val_loss)
@@ -124,13 +128,13 @@ class OnlineSemanticGate:
         if val_loss < self._best_val_loss:
             self._best_val_loss = float(val_loss)
 
-        self._window.append(eps)
         tau = self._compute_tau()
         exceeded = len(self._window) >= self.cfg.min_obs and eps > tau
         if exceeded:
             self._pending_surprise = True
             self.retrain_triggers += 1
 
+        self._window.append(eps)
         norm_s = min(eps / (tau + 1e-6), self.cfg.surprise_clip) if (np.isfinite(tau) and tau > 0) else 0.0
         self._last_eps = eps
         self._last_tau = tau
