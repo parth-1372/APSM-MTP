@@ -191,8 +191,8 @@ class FastCausalSim(TaskOffloadingSim):
         mask = np.ones(1 + self.sim.k_max_neighbors, dtype=bool)
         global_state = np.zeros(obs_dim + 16, dtype=np.float32)
 
-        has_fc = self.forecast_matrix is not None
-        has_surp = self.surprise_matrix is not None
+        has_fc = (self.forecast_matrix is not None) or getattr(self, "has_live_forecaster", False)
+        has_surp = (self.surprise_matrix is not None) or getattr(self, "has_live_forecaster", False)
         inv_q = self._inv_q_max
         inv_mem = 1.0 / float(self.sim.node_mem_cap)
         inv_bw = 1.0 / 200.0

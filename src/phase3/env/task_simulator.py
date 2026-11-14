@@ -215,6 +215,7 @@ class TaskOffloadingSim:
         extra_model_bytes: int = 0,
         apsm_t_threshold: float = 0.12,
         apsm_t_heartbeat: int = 4,
+        has_live_forecaster: bool = False,
         verify_invariants: bool = False,
     ) -> None:
         self.dataset = dataset
@@ -230,6 +231,7 @@ class TaskOffloadingSim:
         self.extra_model_bytes = int(extra_model_bytes)
         self.apsm_t_threshold = float(apsm_t_threshold)
         self.apsm_t_heartbeat = int(apsm_t_heartbeat)
+        self.has_live_forecaster = bool(has_live_forecaster)
         self.verify_invariants = bool(verify_invariants)
 
         # Group tasks cleanly by arrival slot
@@ -409,7 +411,8 @@ class TaskOffloadingSim:
             q_norm = len(self.active_tasks[j]) / float(self.sim.q_max)
             avail_cpu_n = self._node_avail_cpu_norm(j)
             avail_mem_n = min(1.0, self._node_free_mem(j))
-            yhat_j = float(self.cur_y_hat[j])
+            has_fc = (self.forecast_matrix is not None) or self.has_live_forecaster
+            yhat_j = float(self.cur_y_hat[j]) if has_fc else 0.0
 
             should_send = True
             if self.telemetry_mode == "apsm_t":
@@ -464,10 +467,12 @@ class TaskOffloadingSim:
         obs[3] = float(self._cur_bg_cpu[node_id])
 
         # 2. Self forecast & semantic surprise (3 dims; 0 if no forecaster attached)
-        y_hat_i = float(self.cur_y_hat[node_id]) if self.forecast_matrix is not None else 0.0
+        has_fc = (self.forecast_matrix is not None) or self.has_live_forecaster
+        has_surp = (self.surprise_matrix is not None) or self.has_live_forecaster
+        y_hat_i = float(self.cur_y_hat[node_id]) if has_fc else 0.0
         obs[4] = y_hat_i
         obs[5] = 0.0
-        obs[6] = float(self.cur_surprise[node_id]) if self.surprise_matrix is not None else 0.0
+        obs[6] = float(self.cur_surprise[node_id]) if has_surp else 0.0
 
         # 3. Current arriving task features (4 dims)
         w_m = float(self.tasks.cpu_work[task_idx])
@@ -491,7 +496,7 @@ class TaskOffloadingSim:
             if self.telemetry_mode == "oracle":
                 obs[base + 3] = self._node_avail_cpu_norm(peer_id)
                 obs[base + 4] = len(self.active_tasks[peer_id]) / float(self.sim.q_max)
-                obs[base + 5] = float(self.cur_y_hat[peer_id]) if self.forecast_matrix is not None else 0.0
+                obs[base + 5] = float(self.cur_y_hat[peer_id]) if has_fc else 0.0
                 obs[base + 6] = min(1.0, float(self._wire_cnt[node_id, peer_id]) / float(self.sim.q_max))
                 obs[base + 7] = 0.0
             else:
@@ -516,7 +521,7 @@ class TaskOffloadingSim:
         qs = np.array([len(self.active_tasks[n_i]) / float(self.sim.q_max) for n_i in range(self.n_nodes)], dtype=np.float32)
         avails = np.array([self._node_avail_cpu_norm(n_i) for n_i in range(self.n_nodes)], dtype=np.float32)
         mems = np.array([min(1.0, self._node_free_mem(n_i)) for n_i in range(self.n_nodes)], dtype=np.float32)
-        yhats = self.cur_y_hat if self.forecast_matrix is not None else np.zeros(self.n_nodes, dtype=np.float32)
+        yhats = self.cur_y_hat if has_fc else np.zeros(self.n_nodes, dtype=np.float32)
         nbr_qs = np.array([qs[p] for p in nbrs], dtype=np.float32) if nbrs else np.zeros(1, dtype=np.float32)
         nbr_av = np.array([avails[p] for p in nbrs], dtype=np.float32) if nbrs else np.zeros(1, dtype=np.float32)
         total_inflight = (
