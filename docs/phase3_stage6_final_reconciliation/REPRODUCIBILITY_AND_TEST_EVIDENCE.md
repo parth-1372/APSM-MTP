@@ -2,18 +2,18 @@
 
 ## 1. System Environment & Hardware Specifications
 
-All experiments, simulations, calibration sweeps, and test suites were executed on the following verified hardware and software environment:
+All experiments, simulations, calibration sweeps, and test suites were executed on the following verified hardware and software platform:
 
-- **Operating System:** Microsoft Windows 11 Enterprise (Build 26100.1742)
-- **Host CPU:** Intel Core Ultra 7 155H (16 Cores, 22 Threads @ 3.8 GHz Turbo)
-- **Host RAM:** 32.0 GB DDR5 High-Speed Memory
-- **Dedicated GPU:** NVIDIA RTX 1000 Ada Generation Laptop GPU (6 GB GDDR6 VRAM)
-- **CUDA Runtime:** CUDA 13.0 (Driver Version 552.22)
+- **Operating System:** Microsoft Windows 11 (Build 10.0.26200, AMD64 architecture)
+- **Host CPU:** 13th Gen Intel(R) Core(TM) i9-13950HX (24 Physical Cores, 32 Logical Processors @ 2.20 GHz base, up to 5.50 GHz turbo)
+- **Host RAM:** 31.69 GB High-Speed Memory
+- **Dedicated GPU:** NVIDIA RTX 1000 Ada Generation Laptop GPU (6,141 MiB GDDR6 VRAM, Compute Capability 8.9)
+- **NVIDIA Display Driver:** Version 596.71 (CUDA Driver Version 13.2)
 - **Python Environment:** Python 3.10.0 64-bit Virtual Environment (`.venv`)
-- **Core Frameworks:**
-  - `torch`: 2.11.0+cu130 (GPU Acceleration Enabled)
-  - `numpy`: 1.26.4
-  - `scipy`: 1.13.0
+- **Core Frameworks & Libraries:**
+  - `torch`: 2.11.0+cu130 (CUDA GPU acceleration enabled)
+  - `numpy`: 2.2.6
+  - `scipy`: 1.15.3
   - `pandas`: 2.2.2
   - `pytest`: 8.4.2
 
@@ -22,13 +22,13 @@ All experiments, simulations, calibration sweeps, and test suites were executed 
 ## 2. Repository & Branch State
 
 - **Repository:** `https://github.com/parth-1372/APSM-MTP.git`
-- **Baseline Commit (Audited v2):** `5d0dec71dd2061b10d1c3e64a67f81050133a9e2`
-- **Reconciliation Working Branch:** `stage6-final-reconcile-10n`
-- **Remote Push Status:** Maintained strictly as a local working branch; will not be pushed to GitHub without explicit user authorization.
+- **Baseline Audited Milestone:** Commit `5d0dec71dd2061b10d1c3e64a67f81050133a9e2`
+- **Working Reconciliation Branch:** `stage6-final-reconcile-10n`
+- **Branch Tracking:** Strictly tracks `origin/stage6-final-reconcile-10n` without creating alternate branches or force-pushing.
 
 ---
 
-## 3. Step-by-Step Reproduction Commands
+## 3. Reproduction Commands
 
 All commands are executed from the repository root directory `C:\Users\btpUser\Desktop\Parth_MTP\APSM-MTP`:
 
@@ -39,38 +39,51 @@ Executes the 9-point grid sweep across $C_{\text{cpu}} \in \{18.0, 20.0, 22.0\}$
 ```
 *Output:* `results/phase3/stage6_10n_calibration_train_burst.json`
 
-### 3.2 Time-Aligned Forecasting Metrics Evaluation
-Evaluates exactly 3,450 aligned predictions ($10 \text{ nodes} \times 345 \text{ test bins}$) across seeds $11, 22, 33, 44, 55$:
+### 3.2 Programmatic Calibration Table Generation
+Verifies consistency and generates the exact Markdown table without manual transcription:
+```powershell
+.venv\Scripts\python.exe scripts/generate_calibration_table.py
+```
+
+### 3.3 Exact MARL Checkpoint Evaluation with Time-Aligned Forecasting
+Evaluates the trained checkpoints from `results/phase3/checkpoints_stage6_10n_audited_v2/` on test split $[1035, 1380)$ with 3,450 aligned predictions:
+```powershell
+.venv\Scripts\python.exe scripts/eval_marl_forecasting_exact.py
+```
+*Output:* `results/phase3/stage6_10n_marl_eval_exact.json`
+
+### 3.4 Controlled Forecasting Diagnostic (ReactiveGreedy Baseline Policy)
+Evaluates edge LSTM forecasters under a fixed ReactiveGreedy baseline policy:
 ```powershell
 .venv\Scripts\python.exe scripts/reevaluate_forecasting_metrics.py
 ```
 *Output:* `results/phase3/stage6_10n_forecasting_aligned.json`
 
-### 3.3 Strict JSON Reconciliation & Formatting
-Reconciles audited results, converts bare NaNs/Infinities to standards-compliant JSON `null`, updates disaggregated suppression metrics, and validates with a strict parser:
+### 3.5 Strict JSON Reconciliation & Formatting
+Reconciles audited results, preserves individual seed variance, converts bare NaNs/Infinities to standards-compliant JSON `null`, updates paired disaggregated suppression metrics, and validates with a strict parser:
 ```powershell
 .venv\Scripts\python.exe scripts/reconcile_results_json.py
 ```
 *Output:* `results/phase3/stage6_integrated_10n_reconciled.json`
 
-### 3.4 Statistical Hypothesis Testing & Reporting
+### 3.6 Statistical Hypothesis Testing & Reporting
 Executes inferential statistical tests, exact Student's $t$ with $df=4$, Cohen's $d_z$, Holm-Bonferroni correction, and exploratory non-inferiority analysis:
 ```powershell
-.venv\Scripts\python.exe src/phase3/analyze_stage6_results.py
+.venv\Scripts\python.exe src/phase3/analyze_stage6_results.py --results results/phase3/stage6_integrated_10n_reconciled.json --output docs/phase3_stage6_final_reconciliation/CORRECTED_STATISTICAL_ANALYSIS.md
 ```
 *Output:* `docs/phase3_stage6_final_reconciliation/CORRECTED_STATISTICAL_ANALYSIS.md`
 
-### 3.5 Automated Test Suite Execution
-Runs the complete Phase 3 test suite comprising 27 unit and integration tests:
+### 3.7 Complete Automated Test Suite Execution
+Runs all 28 unit and integration tests across Phase 3 and saves log:
 ```powershell
-.venv\Scripts\python.exe -m pytest tests/phase3 -v
+.venv\Scripts\python.exe -m pytest tests/phase3 -v > results/phase3/stage6_final_reconciliation_test_log.txt
 ```
 
 ---
 
 ## 4. Test Suite Structure & Verification Coverage
 
-The automated test suite in `tests/phase3/` contains 27 tests providing end-to-end verification across every subsystem:
+The automated test suite in `tests/phase3/` contains 28 tests providing end-to-end verification across every subsystem:
 
 ### Data Invariants (`test_stage1_data.py` - 3 tests)
 1. `test_schema_verification`: Confirms schema fields, column data types, and non-empty data arrays.
@@ -97,7 +110,7 @@ The automated test suite in `tests/phase3/` contains 27 tests providing end-to-e
 16. `test_run_marl_episode_conservation_delayed_outcomes_and_callbacks`: Asserts conservation across asynchronous task completion callbacks.
 17. `test_run_marl_episode_gstate_strict_causality`: Verifies centralized critic observations do not violate evaluation isolation.
 
-### Stage 6 Live Decentralized Integration (`test_stage6_integration.py` - 10 tests)
+### Stage 6 Live Decentralized Integration (`test_stage6_integration.py` - 11 tests)
 18. `test_channel_separation_and_ledger`: Asserts model bytes and telemetry bytes are strictly separated and unified in communication ledger.
 19. `test_live_forecast_injection`: Confirms live one-step-ahead forecasts are correctly injected into MADQN observation vector without static matrices.
 20. `test_apsm_suppression_at_10n`: Validates that APSM achieves $>45\%$ suppression on live 10-node mesh.
@@ -105,9 +118,10 @@ The automated test suite in `tests/phase3/` contains 27 tests providing end-to-e
 22. `test_strict_temporal_causality`: Verifies that future perturbations after $T_{\text{cut}}$ do not affect prior decisions.
 23. `test_shared_physical_link_contention`: Asserts that model transmissions serialize through link queues and delay concurrent task transmissions.
 24. `test_madqn_pytorch_numpy_parity`: Asserts bit-for-bit equivalence between PyTorch model evaluation and NumPy runner.
-25. `test_marl_deep_temporal_causality_with_instrumentation`: Deep causality test instrumenting Q-network actions, forecasts, residuals, thresholds, and decisions against future perturbations.
-26. `test_model_packet_delivery_vs_bin_callback_assimilation`: Confirms models arriving at $t_{\text{rx}}$ wait in node inboxes and are only assimilated at discrete bin callbacks.
-27. `test_forecasting_metrics_time_alignment_and_non_leakage`: Asserts exactly 3,450 aligned test predictions, zero validation leakage, and persistence matching $y(t-1)$.
+25. `test_marl_deep_temporal_causality_with_instrumentation`: Deep causality test loading actual trained checkpoint and instrumenting Q-network actions, forecasts, residuals, thresholds, and decisions against future perturbations.
+26. `test_model_packet_delivery_vs_bin_callback_assimilation`: Confirms models arriving at physical $t_{\text{rx}}$ wait in node inboxes and are only assimilated at discrete 30s bin boundary callbacks.
+27. `test_holm_bonferroni_adjustment`: Validates step-down multiplier, monotonicity, and family-wise error rate control for Holm-Bonferroni correction.
+28. `test_forecasting_metrics_time_alignment_and_non_leakage`: Asserts exactly 3,450 unique aligned test predictions, zero validation leakage, and persistence matching $y(t-1)$.
 
 ---
 

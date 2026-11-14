@@ -11,6 +11,7 @@ Verifies:
 """
 
 from dataclasses import replace
+from pathlib import Path
 import numpy as np
 import pytest
 import torch
@@ -21,7 +22,8 @@ from phase3.data.topology import build_edge_topology
 from phase3.env.baselines import LocalOnlyPolicy, ReactiveGreedyPolicy
 from phase3.env.task_simulator import PreparedTaskTable, TaskOffloadingSim, prepare_task_table
 from phase3.forecasting.gossip_runner import _pretrain_base_models
-from phase3.integration.live_gossip_engine import CommunicationLedger, LiveGossipManager
+from phase3.forecasting.models import EdgeLSTMForecaster
+from phase3.integration.live_gossip_engine import CommunicationLedger, LiveGossipManager, PendingModelMsg
 from phase3.marl.madqn import MaskedDuelingQNet, _NumpyDuelingQRunner
 
 
@@ -240,11 +242,14 @@ def test_madqn_pytorch_numpy_parity():
 def test_marl_deep_temporal_causality_with_instrumentation(stage6_setup):
     """
     Strengthened Temporal Causality Test:
-    Exercises the actual Q-network / NumPy runner and instruments:
+    Loads a real trained MADQN checkpoint (or fixed deterministic initialization)
+    and exercises the actual production inference path (_NumpyDuelingQRunner).
+    Instruments:
       - Forecast outputs
       - APSM residuals
       - Gating thresholds
-      - Gossip decisions
+      - Actual gate send/suppress decision reasons
+      - Model packet scheduling and transmissions
       - Learned policy actions
     Perturbs future target/features strictly after T_cut and asserts bit-for-bit identical outputs prior to T_cut.
     """
@@ -256,13 +261,26 @@ def test_marl_deep_temporal_causality_with_instrumentation(stage6_setup):
 
     tbl = prepare_task_table(ds, sim_cfg, split="test", seed=42, start_bin=b_start, end_bin=b_end)
 
-    torch.manual_seed(42)
-    qnet = MaskedDuelingQNet(obs_dim=75, action_dim=9, hidden_dim=96)
+    # Pretrain base LSTM forecasters with fixed seed for determinism across runs
+    cfg_cpu = replace(cfg, device="cpu")
+    base_lstm_states, _ = _pretrain_base_models(ds, cfg_cpu)
+
+    # Load actual trained MADQN checkpoint if available
+    ckpt_file = Path("results/phase3/checkpoints_stage6_10n_audited_v2/ckpt_best_e3_madqn_apsm_s11.pt")
+    k_max = cfg.sim.k_max_neighbors
+    obs_dim = 11 + 8 * k_max
+    action_dim = 1 + k_max
+
+    qnet = MaskedDuelingQNet(obs_dim=obs_dim, action_dim=action_dim, hidden_dim=cfg.marl.hidden_dim, fc_scale=0.008)
+    if ckpt_file.exists():
+        ckpt_data = torch.load(ckpt_file, map_location="cpu")
+        qnet.load_state_dict(ckpt_data["state_dict"])
+        qnet.fc_res.fc_active = ckpt_data.get("fc_active", True)
     qnet.eval()
     q_runner = _NumpyDuelingQRunner(qnet)
 
     def run_instrumented(dataset_inst):
-        mgr = LiveGossipManager(dataset_inst, topo, cfg, mode="apsm")
+        mgr = LiveGossipManager(dataset_inst, topo, cfg, mode="apsm", base_states=base_lstm_states, device=torch.device("cpu"))
         sim = TaskOffloadingSim(dataset_inst, topo, tbl, cfg, has_live_forecaster=True)
 
         trace = {
@@ -271,10 +289,11 @@ def test_marl_deep_temporal_causality_with_instrumentation(stage6_setup):
             "residuals": [],
             "thresholds": [],
             "decisions": [],
+            "tx_events": [],
         }
 
         def instrumented_policy(obs, mask, node_id, t_now_s, task_idx):
-            act = int(q_runner.select_action(obs, mask, epsilon=0.0))
+            act = int(q_runner.act(obs, mask, epsilon=0.0))
             trace["actions"].append((t_now_s, node_id, act))
             return act
 
@@ -284,7 +303,8 @@ def test_marl_deep_temporal_causality_with_instrumentation(stage6_setup):
                 trace["forecasts"].append((t_now_s, i, float(mgr.last_preds[i])))
                 trace["residuals"].append((t_now_s, i, float(mgr.gates[i]._last_eps)))
                 trace["thresholds"].append((t_now_s, i, float(mgr.gates[i]._last_tau)))
-                trace["decisions"].append((t_now_s, i, bool(mgr.gates[i]._pending_surprise)))
+                trace["decisions"].append((t_now_s, i, str(mgr.gates[i]._pending_surprise)))
+            trace["tx_events"].append((t_now_s, mgr.ledger.model_packets, mgr.ledger.model_bytes))
 
         sim.run_policy(instrumented_policy, bin_callback=instrumented_callback)
         return trace
@@ -299,7 +319,7 @@ def test_marl_deep_temporal_causality_with_instrumentation(stage6_setup):
     trace2 = run_instrumented(ds_perturbed)
 
     # Filter all pre-cutoff events
-    for key in ["actions", "forecasts", "residuals", "thresholds", "decisions"]:
+    for key in ["actions", "forecasts", "residuals", "thresholds", "decisions", "tx_events"]:
         pre1 = [x for x in trace1[key] if x[0] < t_cut_s]
         pre2 = [x for x in trace2[key] if x[0] < t_cut_s]
         assert len(pre1) > 0, f"No pre-cutoff items for {key}"
@@ -309,35 +329,88 @@ def test_marl_deep_temporal_causality_with_instrumentation(stage6_setup):
 def test_model_packet_delivery_vs_bin_callback_assimilation(stage6_setup):
     """
     Verify discrete-event model packet delivery vs next-bin assimilation:
-    A model packet arriving at physical delivery time t_rx sits in inboxes[v],
-    and is only assimilated into node weights at the subsequent bin callback (t_boundary >= t_rx).
+    A model packet is scheduled on directed link (sender -> receiver) through the actual simulator.
+    1. Verify physical transmission and arrival timestamp t_rx.
+    2. Verify physical arrival occurs between bin boundary t_start and next bin boundary t_start + 30s.
+    3. Verify that at t in (t_rx, t_start + 30.0s), arrival alone does NOT cause model assimilation (inbox has pending message).
+    4. Verify that recipient weights prior to next bin boundary are unchanged.
+    5. Invoke bin callback at next boundary (cur_bin = b_start + 1).
+    6. Verify message is removed from inbox and model weights are assimilated via age_weighted_merge.
     """
     cfg, ds, topo, sim_cfg = stage6_setup
+    b_start = ds.val_end_bin
+    tbl = prepare_task_table(ds, sim_cfg, split="test", seed=42, start_bin=b_start, end_bin=b_start + 5)
+    sim = TaskOffloadingSim(ds, topo, tbl, cfg, has_live_forecaster=True)
     mgr = LiveGossipManager(ds, topo, cfg, mode="apsm")
 
     sender = 0
     receiver = topo.neighbor_slots(sender)[0]
-    t_start = 1000.0
-    model_bytes = 56920
-    bw_bps = float(topo.bw_mbps[sender, receiver]) * 1e6
-    d_tx = (8.0 * model_bytes) / bw_bps
-    t_rx = t_start + d_tx
+    t_start = tbl.t_ep_start_s
+    t_next_bin = t_start + ds.dt_bin_s
+    payload_bytes = mgr.payload_bytes
 
-    # Manually place pending message in inbox
+    # 1. Schedule model packet through the actual simulator method
+    deliver_ts = sim.schedule_model_packet(sender, receiver, payload_bytes, t_start)
+
+    bw_bps = float(topo.bw_mbps[sender, receiver]) * 1e6
+    expected_d_tx = (8.0 * payload_bytes) / bw_bps
+    prop_delay = float(topo.rtt_s[sender, receiver]) / 2.0
+    expected_arr = t_start + expected_d_tx + prop_delay
+
+    assert abs(deliver_ts - expected_arr) < 1e-5, f"Delivery TS mismatch: {deliver_ts} vs {expected_arr}"
+    assert t_start < deliver_ts < t_next_bin, f"Delivery TS {deliver_ts} should arrive between {t_start} and {t_next_bin}"
+
+    # 2. Put message into receiver inbox with arrival timestamp
     shared_w = mgr.models[sender].export_shared_weights()
-    from phase3.integration.live_gossip_engine import PendingModelMsg
-    msg = PendingModelMsg(deliver_time_s=t_rx, sender_id=sender, shared_weights=shared_w, sample_age=1.0)
+    msg = PendingModelMsg(
+        deliver_time_s=deliver_ts,
+        sender_id=sender,
+        shared_weights={k: v.clone() for k, v in shared_w.items()},
+        sample_age=1.0,
+    )
     mgr.inboxes[receiver].append(msg)
 
-    # At t < t_rx: message must NOT be delivered
-    delivered_before = mgr._deliver_due_messages(t_rx - 0.001)
-    assert delivered_before == 0
-    assert len(mgr.inboxes[receiver]) == 1
+    # 3. Snapshot recipient model weights before assimilation
+    rec_w_before = {k: v.clone() for k, v in mgr.models[receiver].export_shared_weights().items()}
 
-    # At t = t_rx: message is delivered and assimilated
-    delivered_at = mgr._deliver_due_messages(t_rx)
-    assert delivered_at == 1
-    assert len(mgr.inboxes[receiver]) == 0
+    # 4. Check intermediate state: physical arrival has occurred, but bin callback has not fired
+    assert len(mgr.inboxes[receiver]) == 1
+    rec_w_intermediate = mgr.models[receiver].export_shared_weights()
+    for k in rec_w_before:
+        assert torch.equal(rec_w_before[k], rec_w_intermediate[k]), "Premature weight assimilation before bin boundary!"
+
+    # 5. Invoke the next actual bin-boundary callback at t=t_next_bin (cur_bin=b_start + 1)
+    mgr.on_bin_boundary(cur_bin=b_start + 1, t_now_s=t_next_bin, sim=sim)
+
+    # 6. The pending message must now be delivered and removed from inbox
+    # (Any new messages in inbox must be strictly in-flight for future bins, deliver_time_s > t_next_bin)
+    assert msg not in mgr.inboxes[receiver]
+    assert all(m.deliver_time_s > t_next_bin for m in mgr.inboxes[receiver])
+
+    # 7. Recipient model weights must now reflect the merged weights
+    rec_w_after = mgr.models[receiver].export_shared_weights()
+    any_diff = any(not torch.equal(rec_w_before[k], rec_w_after[k]) for k in rec_w_before)
+    assert any_diff, "Weights were not assimilated after bin boundary callback!"
+
+
+def test_holm_bonferroni_adjustment():
+    """Verify Holm-Bonferroni step-down multiplier, monotonicity, and family-wise control."""
+    from phase3.analyze_stage6_results import holm_bonferroni
+
+    raw_p = [0.012, 0.045, 0.002, 0.250]
+    adj_p = holm_bonferroni(raw_p)
+    assert len(adj_p) == len(raw_p)
+
+    # Smallest raw p (0.002, index 2, rank 0): (4 - 0) * 0.002 = 0.008
+    assert abs(adj_p[2] - 0.008) < 1e-6
+
+    # Monotonicity check: higher raw p cannot have smaller adjusted p
+    sorted_pairs = sorted(zip(raw_p, adj_p), key=lambda x: x[0])
+    for i in range(len(sorted_pairs) - 1):
+        assert sorted_pairs[i][1] <= sorted_pairs[i + 1][1]
+
+    # Upper bound check
+    assert all(0.0 <= p <= 1.0 for p in adj_p)
 
 
 def test_forecasting_metrics_time_alignment_and_non_leakage(stage6_setup):

@@ -49,16 +49,16 @@ Evaluated strictly over test bins $[1035, 1380)$ ($N=10$ nodes $\times$ $345$ te
 
 | Arm Designation | Test MSE | Test RMSE | Test MAE | Persistence MSE | Error Reduction vs Persistence |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **E3: Local Forecast MADQN** | 0.038038 | 0.1950 | 0.1384 | 0.051666 | **+26.38%** |
-| **E3-GL: Unfiltered Gossip** | 0.036666 | 0.1915 | 0.1361 | 0.051666 | **+29.03%** |
-| **E3-APSM: Integrated Closed-Loop** | 0.036785 | 0.1918 | 0.1358 | 0.051666 | **+28.80%** |
+| **E3: Local Forecast MADQN** | 0.037063 | 0.1925 | 0.1370 | 0.050809 | **+27.05%** |
+| **E3-GL: Unfiltered Gossip** | 0.035884 | 0.1894 | 0.1348 | 0.050809 | **+29.38%** |
+| **E3-APSM: Integrated Closed-Loop** | 0.036000 | 0.1897 | 0.1345 | 0.050809 | **+29.15%** |
 
 ### Paired Forecasting Error Contrast: E3-APSM vs E3-GL
-- **E3-GL MSE (Unfiltered):** 0.036666
-- **E3-APSM MSE (Filtered):** 0.036785
-- **Paired Difference ($\Delta_{\text{MSE}}$):** +0.000119 ± 0.000000 (95% CI: $\pm$0.000000)
-- **Cohen's d_z:** 0.00
-- **Interpretation:** APSM incurs a tiny normalized MSE difference of +0.000119 compared to full unfiltered Gossip Learning, while eliminating 52.23% of model exchange bytes.
+- **E3-GL MSE (Unfiltered):** 0.035884
+- **E3-APSM MSE (Filtered):** 0.036000
+- **Paired Difference ($\Delta_{\text{MSE}}$):** +0.000117 ± 0.000042 (95% CI: $\pm$0.000052)
+- **Cohen's d_z:** 2.78
+- **Interpretation:** APSM incurs an empirical MSE difference of +0.000117 compared to full unfiltered Gossip Learning, while eliminating 52.23% of model exchange bytes.
 
 ## 5. Disaggregated Communication Traffic & Ledger Reconciliation
 
@@ -68,8 +68,8 @@ Evaluated strictly over test bins $[1035, 1380)$ ($N=10$ nodes $\times$ $345$ te
 | **E1: ReactiveGreedy** | 0 | N/A | 0 | N/A | 0.00 MB | N/A | 1.05 MB | N/A |
 | **E2: Reactive MADQN** | 0 | N/A | 0 | N/A | 0.00 MB | N/A | 0.95 MB | N/A |
 | **E3: Local Forecast MADQN** | 0 | N/A | 0 | N/A | 0.00 MB | N/A | 0.95 MB | N/A |
-| **E3-GL: Unfiltered Gossip** | 2,940 | 0.00% | 5,504 | 0.00% | 313.29 MB | 0.00% | 314.26 MB | 0.00% |
-| **E3-APSM: Integrated Closed-Loop** | 2,940 | 52.55% | 2,629 | 52.23% | 149.64 MB | 52.23% | 150.61 MB | 52.07% |
+| **E3-GL: Unfiltered Gossip** | 1,720 | 0.00% | 5,504 | 0.00% | 313.29 MB | 0.00% | 314.26 MB | 0.00% |
+| **E3-APSM: Integrated Closed-Loop** | 1,720 | 52.55% | 2,629 | 52.23% | 149.64 MB | 52.23% | 150.61 MB | 52.07% |
 
 ## 6. Physical Network Contention Semantics
 

@@ -1,6 +1,6 @@
 # Corrected Forecasting Metric Time Alignment & Evaluation (N=10)
 
-## 1. Prequential Evaluation Protocol
+## 1. Prequential Evaluation Protocol & Temporal Invariants
 
 Edge workload forecasting operates under a strict **prequential (predictive sequential) online protocol**:
 1. At discrete bin boundary $t$ (where time elapsed is $t \times 30\text{ seconds}$), each node $i$ observes historical arrival rates up to bin $t-1$:
@@ -9,97 +9,91 @@ Edge workload forecasting operates under a strict **prequential (predictive sequ
 3. As tasks arrive during bin $t$, the true arrival rate $y_i(t)$ materializes.
 4. At the subsequent boundary $t+1$, the true arrival rate $y_i(t)$ is recorded and evaluated against the earlier prediction $\hat{y}_i(t)$ before taking any gossip assimilation actions.
 
----
-
-## 2. Temporal Alignment & Test Horizon
-
-### 2.1 The Test Split
-The evaluation scenario contains $N_{\text{bins}} = 1,380$ bins of 30 seconds each (41,400 seconds total duration).
-The dataset partitions are:
-- **Training:** Bins $[0, 828)$
-- **Validation:** Bins $[828, 1035)$
-- **Test:** Bins $[1035, 1380)$
-
-The test horizon spans exactly **345 bins** ($1,380 - 1,035 = 345$), corresponding to $345 \times 30 = 10,350\text{ seconds}$ ($2.875\text{ hours}$).
-
-### 2.2 Time Alignment Corrections
-In earlier iterations of the logging harness, two boundary defects affected forecasting metric logging:
-1. **Validation Window Leakage:** The evaluation callback logged the residual for bin 1034 at boundary 1035. Because bin 1034 belongs to the validation split, this introduced one validation target into the test evaluation.
-2. **Truncation of Final Test Bin:** The simulation terminated at $t = 41,400\text{s}$ (bin 1380). The prediction $\hat{y}(1379)$ made at boundary 1379 was never scored because the post-simulation callback did not finalize the pending prediction against the completed bin 1379 arrival count.
-
-### 2.3 Verified Aligned Implementation
-In `src/phase3/integration/live_gossip_engine.py`:
-- `on_bin_boundary` strictly filters test records:
-  ```python
-  if self.test_start_bin <= past_bin < self.test_end_bin:
-      # strictly records targets in [1035, 1379]
-  ```
-- `finalize_test_metrics()` is explicitly called upon simulation shutdown:
-  ```python
-  def finalize_test_metrics(self) -> None:
-      """Evaluate the final test bin (1379) against its prediction made at bin 1379."""
-      last_test_bin = self.test_end_bin - 1  # 1379
-      if self.last_pred_bin == last_test_bin and last_test_bin not in self.evaluated_bins:
-          # Evaluate final closed test bin
-  ```
-- **Assertion:** Exactly $10 \text{ nodes} \times 345 \text{ test bins} = 3,450$ aligned test records are collected for every evaluation run.
+### 1.1 Temporal Alignment & Invariant Assertions
+- **Total Scenario Horizon:** $N_{\text{bins}} = 1,380$ bins of 30 seconds ($41,400\text{ seconds} = 11.5\text{ hours}$).
+- **Test Horizon Partition:** Bins $[1035, 1380)$ ($10,350\text{ seconds} = 2.875\text{ hours}$).
+- **Prediction Alignment:** Exactly $10 \text{ nodes} \times 345 \text{ test bins} = 3,450$ predictions per run.
+- **Zero Validation Leakage:** Target bin 1034 (belonging to validation split $[828, 1035)$) is strictly excluded from test metrics.
+- **Closed Final Test Bin:** Target bin 1379 is explicitly evaluated against its prediction at termination via `finalize_test_metrics()`.
+- **Idempotence & Uniqueness:** Verified assertion of exactly 3,450 unique `(node_id, target_bin)` pairs with zero duplicates.
 
 ---
 
-## 3. Naive Persistence Baseline
+## 2. Distinction Between Integrated Benchmark & Diagnostic Evaluation
 
-To establish a rigorous, scientifically valid reference point, a **Naive Persistence Baseline** is computed over the identical 3,450 test slots:
-$$\hat{y}_{\text{persist}}(t) = y(t-1)$$
-For the initial test bin ($t = 1035$), $y(t-1) = y(1034)$ is taken from the final validation bin without parameter adaptation.
-
-**Persistence Baseline Test Performance:**
-- **MSE:** $0.051666$
-- **RMSE:** $0.227302$
-- **MAE:** $0.158145$
-
-Any learned forecaster must substantially outperform this persistence baseline to demonstrate true predictive capability.
+> [!IMPORTANT]
+> **Experimental Provenance Clarification:**
+> To ensure scientific rigor and prevent experimental conflation:
+> 1. **Integrated MADQN Benchmark:** Evaluates forecasting performance during live closed-loop execution of the trained Parameter-Shared Dueling Double-DQN policies (`results/phase3/stage6_10n_marl_eval_exact.json` and `results/phase3/stage6_integrated_10n_reconciled.json`).
+> 2. **Controlled Forecasting Diagnostic:** Evaluates forecasters under a fixed ReactiveGreedy baseline policy (`results/phase3/stage6_10n_forecasting_aligned.json`) to isolate workload arrival modeling from reinforcement learning exploration dynamics.
+> 
+> Both evaluations use the identical 3,450 test slots and identical base LSTM initializations. Both are reported below without conflation.
 
 ---
 
-## 4. Aligned Forecasting Results
+## 3. Integrated MADQN Benchmark Forecasting Results
 
-The table below summarizes the time-aligned forecasting metrics evaluated across all 5 evaluation seeds ($11, 22, 33, 44, 55$), encompassing 17,250 evaluated predictions ($5 \times 3,450$):
+The table below summarizes the exact time-aligned forecasting metrics evaluated across all 5 policy training seeds ($11, 22, 33, 44, 55$) under live MADQN execution:
 
-| Configuration | Test MSE (mean $\pm$ std) | Test RMSE | Test MAE | Relative Error Reduction vs. Persistence | APSM Overhead vs. GL ($\Delta_{\text{MSE}}$) |
+| Evaluation Arm | Test MSE (mean $\pm$ sample std) | Test RMSE | Test MAE | Persistence MSE | Error Reduction vs Persistence | Paired Difference vs GL ($\Delta_{\text{MSE}}$) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Naive Persistence Baseline** | $0.050809 \pm 0.000000$ | $0.2254$ | $0.1568$ | 0.050809 | 0.00% (Ref) | — |
+| **E3: Local Forecast MADQN** | $0.037063 \pm 0.000142$ | $0.1925$ | $0.1370$ | 0.050809 | **+27.05%** | $+0.001179$ (Local penalty) |
+| **E3-GL: Unfiltered Gossip** | $0.035884 \pm 0.000064$ | $0.1894$ | $0.1348$ | 0.050809 | **+29.38%** | Reference |
+| **E3-APSM: Integrated Closed-Loop** | $0.036000 \pm 0.000029$ | $0.1897$ | $0.1345$ | 0.050809 | **+29.15%** | **$+0.000117 \pm 0.000042$** |
+
+### 3.1 Collaborative Gain Retention under MADQN
+The collaborative learning gain achieved by unfiltered Gossip Learning over isolated local forecasters is:
+$$\Delta_{\text{GL-Local}} = MSE_{\text{Local}} - MSE_{\text{GL}} = 0.037063 - 0.035884 = 0.001179$$
+The collaborative learning gain retained by APSM is:
+$$\Delta_{\text{APSM-Local}} = MSE_{\text{Local}} - MSE_{\text{APSM}} = 0.037063 - 0.036000 = 0.001063$$
+The collaborative gain retention ratio $R$ is:
+$$R = \frac{MSE_{\text{Local}} - MSE_{\text{APSM}}}{MSE_{\text{Local}} - MSE_{\text{GL}}} \times 100 = \frac{0.001063}{0.001179} \times 100 = \mathbf{90.16\%}$$
+
+### 3.2 Per-Seed Breakdown (Integrated MADQN)
+
+#### E3: Local Forecast MADQN (Isolated LSTMs):
+- Seed 11: MSE = $0.037025$, RMSE = $0.1924$, MAE = $0.1371$, Pers_MSE = $0.050809$
+- Seed 22: MSE = $0.037312$, RMSE = $0.1932$, MAE = $0.1374$, Pers_MSE = $0.050809$
+- Seed 33: MSE = $0.037017$, RMSE = $0.1924$, MAE = $0.1371$, Pers_MSE = $0.050809$
+- Seed 44: MSE = $0.036955$, RMSE = $0.1922$, MAE = $0.1368$, Pers_MSE = $0.050809$
+- Seed 55: MSE = $0.037009$, RMSE = $0.1924$, MAE = $0.1369$, Pers_MSE = $0.050809$
+
+#### E3-GL: Unfiltered Gossip Learning:
+- Seed 11: MSE = $0.035771$, RMSE = $0.1891$, MAE = $0.1346$, Pers_MSE = $0.050809$
+- Seed 22: MSE = $0.035889$, RMSE = $0.1894$, MAE = $0.1348$, Pers_MSE = $0.050809$
+- Seed 33: MSE = $0.035928$, RMSE = $0.1895$, MAE = $0.1350$, Pers_MSE = $0.050809$
+- Seed 44: MSE = $0.035916$, RMSE = $0.1895$, MAE = $0.1349$, Pers_MSE = $0.050809$
+- Seed 55: MSE = $0.035914$, RMSE = $0.1895$, MAE = $0.1349$, Pers_MSE = $0.050809$
+
+#### E3-APSM: Semantic Model Suppression:
+- Seed 11: MSE = $0.035953$, RMSE = $0.1896$, MAE = $0.1344$, Pers_MSE = $0.050809$
+- Seed 22: MSE = $0.036022$, RMSE = $0.1898$, MAE = $0.1346$, Pers_MSE = $0.050809$
+- Seed 33: MSE = $0.036019$, RMSE = $0.1898$, MAE = $0.1346$, Pers_MSE = $0.050809$
+- Seed 44: MSE = $0.035992$, RMSE = $0.1897$, MAE = $0.1345$, Pers_MSE = $0.050809$
+- Seed 55: MSE = $0.036016$, RMSE = $0.1898$, MAE = $0.1346$, Pers_MSE = $0.050809$
+
+---
+
+## 4. Controlled Forecasting Diagnostic (ReactiveGreedy Baseline Policy)
+
+Under the separate diagnostic evaluation where tasks are scheduled using fixed ReactiveGreedy offloading:
+
+| Evaluation Arm | Test MSE (mean $\pm$ sample std) | Test RMSE | Test MAE | Persistence MSE | Error Reduction vs Persistence |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Naive Persistence** | $0.051666 \pm 0.000000$ | $0.227302$ | $0.158145$ | 0.00% (Reference) | — |
-| **E3-Local (No Gossip)** | $0.038038 \pm 0.000109$ | $0.195033$ | $0.138407$ | **+26.38%** | — |
-| **E3-GL (Unfiltered Gossip)** | $0.036666 \pm 0.000048$ | $0.191484$ | $0.136224$ | **+29.03%** | Reference |
-| **E3-APSM (Semantic Suppression)** | $0.036785 \pm 0.000031$ | $0.191794$ | $0.136015$ | **+28.80%** | **$+0.000119$ (+0.32%)** |
+| **Naive Persistence Baseline** | $0.050809 \pm 0.000000$ | $0.2254$ | $0.1568$ | 0.050809 | 0.00% (Ref) |
+| **E3-Local (Diagnostic)** | $0.037086 \pm 0.000087$ | $0.1926$ | $0.1370$ | 0.050809 | **+27.01%** |
+| **E3-GL (Diagnostic)** | $0.035904 \pm 0.000025$ | $0.1895$ | $0.1349$ | 0.050809 | **+29.34%** |
+| **E3-APSM (Diagnostic)** | $0.035997 \pm 0.000034$ | $0.1897$ | $0.1346$ | 0.050809 | **+29.15%** |
 
-### Per-Seed Detailed Breakdown
-
-#### E3-Local (Isolated Edge LSTMs):
-- Seed 11: MSE = $0.037894$, RMSE = $0.1947$, MAE = $0.1382$
-- Seed 22: MSE = $0.038166$, RMSE = $0.1954$, MAE = $0.1386$
-- Seed 33: MSE = $0.038112$, RMSE = $0.1952$, MAE = $0.1385$
-- Seed 44: MSE = $0.038095$, RMSE = $0.1952$, MAE = $0.1385$
-- Seed 55: MSE = $0.037985$, RMSE = $0.1949$, MAE = $0.1383$
-
-#### E3-GL (Unfiltered Gossip Learning):
-- Seed 11: MSE = $0.036611$, RMSE = $0.1913$, MAE = $0.1361$
-- Seed 22: MSE = $0.036660$, RMSE = $0.1915$, MAE = $0.1362$
-- Seed 33: MSE = $0.036735$, RMSE = $0.1917$, MAE = $0.1363$
-- Seed 44: MSE = $0.036691$, RMSE = $0.1915$, MAE = $0.1363$
-- Seed 55: MSE = $0.036633$, RMSE = $0.1914$, MAE = $0.1362$
-
-#### E3-APSM (Semantic Model Suppression):
-- Seed 11: MSE = $0.036742$, RMSE = $0.1917$, MAE = $0.1359$
-- Seed 22: MSE = $0.036829$, RMSE = $0.1919$, MAE = $0.1361$
-- Seed 33: MSE = $0.036798$, RMSE = $0.1918$, MAE = $0.1360$
-- Seed 44: MSE = $0.036801$, RMSE = $0.1918$, MAE = $0.1361$
-- Seed 55: MSE = $0.036753$, RMSE = $0.1917$, MAE = $0.1359$
+In this diagnostic, APSM achieves a collaborative gain retention ratio of:
+$$R_{\text{diag}} = \frac{0.037086 - 0.035997}{0.037086 - 0.035904} \times 100 = \frac{0.001089}{0.001182} \times 100 = \mathbf{92.13\%}$$
 
 ---
 
-## 5. Key Research Conclusions on Forecasting
+## 5. Key Research Takeaways
 
-1. **Substantial Predictive Superiority:** All deep learning configurations (E3-Local, E3-GL, E3-APSM) dramatically outperform the Naive Persistence baseline, reducing prediction MSE by over $26.3\%$ to $29.0\%$ ($p < 10^{-6}$).
-2. **Gossip Learning Collaborative Gain:** Unfiltered Gossip Learning achieves a statistically significant MSE reduction over isolated local training ($\Delta_{\text{MSE}} = -0.001372$, $t = -33.91, p < 10^{-5}$), confirming that cross-node weight assimilation improves individual edge node generalization on real Alibaba workloads.
-3. **APSM Semantic Efficiency:** APSM suppresses **$52.23\%$ of model packet and byte transmissions**, cutting network communication in half. In exchange, the forecasting error increases by a negligible $\Delta_{\text{MSE}} = +0.000119$ ($+0.32\%$ relative difference).
-4. **Benefit Retention:** APSM retains **$99.3\%$** of the collaborative accuracy advantage of full gossip learning while freeing over half of the edge link bandwidth for latency-sensitive application task offloading.
+1. **Massive Persistence Superiority:** Both integrated MADQN forecasters and diagnostic forecasters dramatically outperform Naive Persistence, reducing test MSE by over $27\%$ to $29\%$ ($p < 10^{-6}$).
+2. **Gossip Learning Advantage:** Collaborative peer-to-peer weight exchange yields a statistically significant error reduction over isolated local learning ($\Delta_{\text{MSE}} = -0.001179$, $p < 0.0001$).
+3. **APSM Gating Efficiency:** APSM reduces model byte transfers by **$52.23\%$** across the network, while incurring an MSE penalty of only **$+0.000117$** ($+0.33\%$ relative error increase).
+4. **Benefit Retention:** APSM retains **$90.16\%$** of the collaborative gossip learning benefit under live MADQN execution, confirming that semantic gating successfully suppresses redundant transmissions without sacrificing edge predictive fidelity.

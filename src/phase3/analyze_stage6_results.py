@@ -329,7 +329,7 @@ def analyze_stage6(json_path: str, out_md_path: str) -> Dict[str, Any]:
                 f"- **E3-APSM MSE (Filtered):** {fcd['mse_apsm']:.6f}",
                 f"- **Paired Difference ({delta_sym}):** {fcd['mean_diff']:+.6f} ± {fcd['std_diff']:.6f} (95% CI: {pm_sym}{fcd['ci95']:.6f})",
                 f"- **Cohen's d_z:** {fcd['cohens_dz']:.2f}",
-                f"- **Interpretation:** APSM incurs a tiny normalized MSE difference of +0.000119 compared to full unfiltered Gossip Learning, while eliminating 52.23% of model exchange bytes.",
+                f"- **Interpretation:** APSM incurs an empirical MSE difference of {fcd['mean_diff']:+.6f} compared to full unfiltered Gossip Learning, while eliminating {summary['e3_madqn_apsm']['byte_red_pct']:.2f}% of model exchange bytes.",
             ])
 
     lines.extend([
@@ -347,12 +347,13 @@ def analyze_stage6(json_path: str, out_md_path: str) -> Dict[str, Any]:
         ctrl_red = f"{s['ctrl_red_pct']:.2f}%" if s["ctrl_red_pct"] is not None else "N/A"
 
         # Model packets and model bytes
+        tot_chk = int(np.mean([grouped[a][s].get("total_gossip_checks", 0) for s in seeds]))
         pkts = int(np.mean([grouped[a][s].get("model_packets", 0) for s in seeds]))
         mb_model = np.mean([grouped[a][s].get("model_bytes", 0) for s in seeds]) / 1e6
         mb_ctrl = s["cb_ctrl_mean"] / 1e6
 
         lines.append(
-            f"| **{s['name']}** | {2940 if a in ('e3_madqn_apsm', 'e3_madqn_gl') else 0:,} | {chk_supp} | {pkts:,} | {pkt_red} | {mb_model:.2f} MB | {byte_red} | {mb_ctrl:.2f} MB | {ctrl_red} |"
+            f"| **{s['name']}** | {tot_chk:,} | {chk_supp} | {pkts:,} | {pkt_red} | {mb_model:.2f} MB | {byte_red} | {mb_ctrl:.2f} MB | {ctrl_red} |"
         )
 
     lines.extend([
