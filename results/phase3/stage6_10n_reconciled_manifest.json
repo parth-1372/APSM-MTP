@@ -1,0 +1,72 @@
+{
+  "benchmark_milestone": "stage6_integrated_10n_final_reconciliation",
+  "base_commit": "5d0dec71dd2061b10d1c3e64a67f81050133a9e2",
+  "branch": "stage6-final-reconcile-10n",
+  "scope": "N=10 nodes only",
+  "artifacts": {
+    "results/phase3/stage6_integrated_10n_reconciled.json": {
+      "sha256": "7491f8ff7993dd8e9f5098af9c85a21985e1e80a4809308f074e18dfc7ebda22",
+      "bytes": 231921
+    },
+    "results/phase3/stage6_10n_calibration_train_burst.json": {
+      "sha256": "c0a3f9637f6e5e7df63b50470fa37913b0173d2b40232759ee3cb26eaa17a075",
+      "bytes": 4160
+    },
+    "results/phase3/stage6_10n_forecasting_aligned.json": {
+      "sha256": "e47bd785cbce742fb7bbaef908c4759531c94c24b38f4e6dfd615b2d4d0d26f3",
+      "bytes": 4264
+    },
+    "scripts/calibrate_10n_train.py": {
+      "sha256": "19e269eca00352af631f1557b3aea76537187ad39d7288fbc4c5898c7e7b6993",
+      "bytes": 4503
+    },
+    "scripts/reevaluate_forecasting_metrics.py": {
+      "sha256": "c6298fb582a78daa5ab56eed2b09c167291310e13ccd921c8b1a8b443df09d94",
+      "bytes": 5120
+    },
+    "scripts/reconcile_results_json.py": {
+      "sha256": "6ef8f39b5db7f160287bd0cbe2e5eb2b616b7a3866d56c6d240a651cb79533e5",
+      "bytes": 5532
+    },
+    "scripts/generate_reconciled_manifest.py": {
+      "sha256": "7816a8dbee30a5f753e2e3a8bdf8ea3088a4e730f02b7ce447f0cfbb5b16b2fa",
+      "bytes": 2249
+    },
+    "src/phase3/integration/live_gossip_engine.py": {
+      "sha256": "8364825bed9b0cf20f0c6382738051aed94aa58a196d41ccdb61420ecd1e17f8",
+      "bytes": 17929
+    },
+    "src/phase3/analyze_stage6_results.py": {
+      "sha256": "dbea764e7b51e8d96a2a831eee019ca1aad0ebc434bc45bd10a65ba04438033c",
+      "bytes": 20950
+    },
+    "tests/phase3/test_stage6_integration.py": {
+      "sha256": "9b269371a9c2dd82f7e74511bbcc483198ede6954f7ce5090cadb630d8792312",
+      "bytes": 16730
+    },
+    "docs/phase3_stage6_final_reconciliation/FINAL_SOURCE_VS_DOCUMENTATION_AUDIT.md": {
+      "sha256": "aaf05ea36985adee78ab4b9869a0dc95deb948a02ed2f82199bce5570fa8a1bb",
+      "bytes": 8198
+    },
+    "docs/phase3_stage6_final_reconciliation/CORRECTED_DATA_AND_METHODOLOGY.md": {
+      "sha256": "c5cf424c0fd0f06b55d9f1fba2b4bdef921f41f1a17bf026d7d33ee4b0ac5c7b",
+      "bytes": 8722
+    },
+    "docs/phase3_stage6_final_reconciliation/CORRECTED_FORECAST_EVALUATION.md": {
+      "sha256": "c7a5f14777827b7ea2ae366e344c507cae572138a057052d0b626673c04ee668",
+      "bytes": 6420
+    },
+    "docs/phase3_stage6_final_reconciliation/CORRECTED_STATISTICAL_ANALYSIS.md": {
+      "sha256": "120b5c53ca6ed1dce37e837709dae02620f6c9fcabd14715c61b0e802e3e036e",
+      "bytes": 7954
+    },
+    "docs/phase3_stage6_final_reconciliation/FINAL_RESEARCH_CONCLUSION.md": {
+      "sha256": "5714f2f5f50e74d2a46106f22cf5d121af4c402bca5c688a079ad8dc12de507c",
+      "bytes": 6831
+    },
+    "docs/phase3_stage6_final_reconciliation/REPRODUCIBILITY_AND_TEST_EVIDENCE.md": {
+      "sha256": "768b7f9579983be40eac276637d1c7525d52aa90018d7263ecc688bc64cd66c1",
+      "bytes": 7629
+    }
+  }
+}

@@ -116,6 +116,8 @@ class LiveGossipManager:
         mode: Literal["apsm", "local_only", "unfiltered_gl", "off"] = "apsm",
         base_states: Optional[List[Dict[str, torch.Tensor]]] = None,
         device: Optional[torch.device] = None,
+        test_start_bin: Optional[int] = None,
+        test_end_bin: Optional[int] = None,
     ) -> None:
         self.dataset = dataset
         self.topo = topo
@@ -124,6 +126,8 @@ class LiveGossipManager:
         self.n_nodes = dataset.n_nodes
         self.lookback_L = dataset.lookback_L
         self.device = device or torch.device(cfg.device)
+        self.test_start_bin = int(test_start_bin if test_start_bin is not None else dataset.val_end_bin)
+        self.test_end_bin = int(test_end_bin if test_end_bin is not None else dataset.n_bins)
 
         # Build per-node models, gates, optimizers, and buffers
         self.models: List[EdgeLSTMForecaster] = []
@@ -170,6 +174,7 @@ class LiveGossipManager:
         self.cadence_bins = max(1, getattr(cfg.gossip, "cadence_bins", 2))
         self._last_step_bin = -1
         self._has_stepped = False
+        self.test_records: List[Tuple[int, int, float, float, float]] = []  # (node_id, target_bin, y_true, y_pred, y_pers)
         self.all_y_true: List[float] = []
         self.all_y_pred: List[float] = []
         self.all_y_pers: List[float] = []
@@ -278,6 +283,12 @@ class LiveGossipManager:
                 if past_bin > 0:
                     self.all_y_pers.append(float(self.dataset.targets[i, past_bin - 1]))
 
+                # Strictly accumulate test-window records when past_bin in [test_start_bin, test_end_bin)
+                # Validation bins (< test_start_bin) are strictly excluded from test metrics
+                if self.test_start_bin <= past_bin < self.test_end_bin:
+                    y_pers = float(self.dataset.targets[i, past_bin - 1])
+                    self.test_records.append((i, past_bin, y_true, y_pred, y_pers))
+
                 # Append to online buffer for adaptation
                 if past_bin >= self.lookback_L:
                     w_x = self.dataset.features[i, past_bin - self.lookback_L : past_bin]
@@ -348,20 +359,48 @@ class LiveGossipManager:
             sim.cur_y_hat[i] = pred
             sim.cur_surprise[i] = self.gates[i].current_norm_surprise
 
+    def finalize_test_metrics(self) -> None:
+        """
+        Evaluate the final closed test bin (test_end_bin - 1) against last_preds,
+        which was predicted at cur_bin = test_end_bin - 1.
+        """
+        final_bin = self.test_end_bin - 1
+        already_recorded = any(r[1] == final_bin for r in self.test_records)
+        if not already_recorded and final_bin >= self.test_start_bin:
+            for i in range(self.n_nodes):
+                y_true = float(self.dataset.targets[i, final_bin])
+                y_pred = float(self.last_preds[i])
+                y_pers = float(self.dataset.targets[i, final_bin - 1])
+                self.test_records.append((i, final_bin, y_true, y_pred, y_pers))
+
     def compute_forecasting_metrics(self) -> Dict[str, float]:
-        """Compute test-window direct forecasting metrics: MSE, RMSE, MAE, and persistence baseline."""
-        if not self.all_y_true:
+        """
+        Compute test-window direct forecasting metrics: MSE, RMSE, MAE, and persistence baseline.
+        Strict time alignment:
+          - Evaluates exactly targets with indices [test_start_bin, test_end_bin).
+          - Excludes all validation observations (bins < test_start_bin).
+          - Evaluates final test-bin prediction (bin test_end_bin - 1) against actual target.
+          - Persistence prediction uses y_true(t-1) for matching target t.
+          - Asserts exactly n_nodes * (test_end_bin - test_start_bin) aligned predictions.
+        """
+        self.finalize_test_metrics()
+        records = [r for r in self.test_records if self.test_start_bin <= r[1] < self.test_end_bin]
+        if not records:
             return {"fc_mse": 0.0, "fc_rmse": 0.0, "fc_mae": 0.0, "fc_pers_mse": 0.0}
-        yt = np.array(self.all_y_true, dtype=np.float64)
-        yp = np.array(self.all_y_pred, dtype=np.float64)
+
+        expected_count = self.n_nodes * (self.test_end_bin - self.test_start_bin)
+        assert len(records) == expected_count, (
+            f"Expected exactly {expected_count} aligned test predictions, got {len(records)}"
+        )
+
+        yt = np.array([r[2] for r in records], dtype=np.float64)
+        yp = np.array([r[3] for r in records], dtype=np.float64)
+        ypers = np.array([r[4] for r in records], dtype=np.float64)
+
         mse = float(np.mean((yt - yp) ** 2))
         rmse = float(math.sqrt(mse))
         mae = float(np.mean(np.abs(yt - yp)))
-        if self.all_y_pers and len(self.all_y_pers) == len(yt):
-            ypers = np.array(self.all_y_pers, dtype=np.float64)
-            pers_mse = float(np.mean((yt - ypers) ** 2))
-        else:
-            pers_mse = float("nan")
+        pers_mse = float(np.mean((yt - ypers) ** 2))
         return {
             "fc_mse": mse,
             "fc_rmse": rmse,
