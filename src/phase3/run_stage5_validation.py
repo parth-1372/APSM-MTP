@@ -332,9 +332,11 @@ class WireOracleFastSim(FastCausalSim):
                 self._total_inflight -= 1
             self._emit_outcome(task, dropped, reason, ev_ts)
 
-    def build_observation(self, node_id: int, task_idx: int, t_now_s: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        obs, mask, gs = super().build_observation(node_id, task_idx, t_now_s)
-        if self.oracle_wire_inflight and self.telemetry_mode == "oracle":
+    def build_observation(
+        self, node_id: int, task_idx: int, t_now_s: float, include_global_state: bool = False
+    ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
+        obs, mask, gs = super().build_observation(node_id, task_idx, t_now_s, include_global_state=include_global_state)
+        if gs is not None and self.oracle_wire_inflight and self.telemetry_mode == "oracle":
             nbrs = self._nbr_slots_tup[node_id]
             inv_q = self._inv_q_max
             for k_idx, peer_id in enumerate(nbrs[: self.sim.k_max_neighbors]):

@@ -490,11 +490,11 @@ class TaskOffloadingSim:
                 self.telemetry_bytes += beacon_bytes
 
     def build_observation(
-        self, node_id: int, task_idx: int, t_now_s: float
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        self, node_id: int, task_idx: int, t_now_s: float, include_global_state: bool = False
+    ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
         """
         Build strictly causal observation `o_i(t)`, valid discrete action mask `(1 + K_max,)`,
-        and offline CTDE global summary `(obs_dim + 16,)` for centralized MAPPO critic.
+        and offline CTDE global summary `(obs_dim + 16,)` for centralized MAPPO critic if requested.
         """
         k_max = self.sim.k_max_neighbors
         obs_dim = 11 + 8 * k_max
@@ -559,42 +559,45 @@ class TaskOffloadingSim:
                 inflight_cnt = len(self.inflight_records[node_id][peer_id])
                 obs[base + 6] = min(1.0, inflight_cnt / float(self.sim.q_max))
 
-        # 5. Offline CTDE global critic vector (fixed 16 extra dims -> works identically at N=6..100)
-        qs = np.array([len(self.active_tasks[n_i]) / float(self.sim.q_max) for n_i in range(self.n_nodes)], dtype=np.float32)
-        avails = np.array([self._node_avail_cpu_norm(n_i) for n_i in range(self.n_nodes)], dtype=np.float32)
-        mems = np.array([min(1.0, self._node_free_mem(n_i)) for n_i in range(self.n_nodes)], dtype=np.float32)
-        yhats = self.cur_y_hat if has_fc else np.zeros(self.n_nodes, dtype=np.float32)
-        nbr_qs = np.array([qs[p] for p in nbrs], dtype=np.float32) if nbrs else np.zeros(1, dtype=np.float32)
-        nbr_av = np.array([avails[p] for p in nbrs], dtype=np.float32) if nbrs else np.zeros(1, dtype=np.float32)
-        total_inflight = (
-            float(self._wire_cnt.sum())
-            if self.telemetry_mode == "oracle"
-            else sum(
-                len(self.inflight_records[u][v]) for u in range(self.n_nodes) for v in self.inflight_records[u]
+        # 5. Offline CTDE global critic vector (fixed 16 extra dims -> computed only when needed)
+        if include_global_state:
+            qs = np.array([len(self.active_tasks[n_i]) / float(self.sim.q_max) for n_i in range(self.n_nodes)], dtype=np.float32)
+            avails = np.array([self._node_avail_cpu_norm(n_i) for n_i in range(self.n_nodes)], dtype=np.float32)
+            mems = np.array([min(1.0, self._node_free_mem(n_i)) for n_i in range(self.n_nodes)], dtype=np.float32)
+            yhats = self.cur_y_hat if has_fc else np.zeros(self.n_nodes, dtype=np.float32)
+            nbr_qs = np.array([qs[p] for p in nbrs], dtype=np.float32) if nbrs else np.zeros(1, dtype=np.float32)
+            nbr_av = np.array([avails[p] for p in nbrs], dtype=np.float32) if nbrs else np.zeros(1, dtype=np.float32)
+            total_inflight = (
+                float(self._wire_cnt.sum())
+                if self.telemetry_mode == "oracle"
+                else sum(
+                    len(self.inflight_records[u][v]) for u in range(self.n_nodes) for v in self.inflight_records[u]
+                )
             )
-        )
-        summary = np.array(
-            [
-                float(qs.mean()),
-                float(qs.std()),
-                float(qs.max()),
-                float(qs.min()),
-                float(avails.mean()),
-                float(avails.min()),
-                float(avails.max()),
-                float(mems.mean()),
-                float(yhats.mean()),
-                float(yhats.max()),
-                float(total_inflight / max(1, self.n_nodes * self.sim.q_max)),
-                float(len(self.topo.neighbor_slots(node_id)) / float(k_max)),
-                float(nbr_qs.min()),
-                float(nbr_av.max()),
-                float(nbr_qs.mean()),
-                float(nbr_av.mean()),
-            ],
-            dtype=np.float32,
-        )
-        global_state = np.concatenate([obs, summary], axis=0)
+            summary = np.array(
+                [
+                    float(qs.mean()),
+                    float(qs.std()),
+                    float(qs.max()),
+                    float(qs.min()),
+                    float(avails.mean()),
+                    float(avails.min()),
+                    float(avails.max()),
+                    float(mems.mean()),
+                    float(yhats.mean()),
+                    float(yhats.max()),
+                    float(total_inflight / max(1, self.n_nodes * self.sim.q_max)),
+                    float(len(self.topo.neighbor_slots(node_id)) / float(k_max)),
+                    float(nbr_qs.min()),
+                    float(nbr_av.max()),
+                    float(nbr_qs.mean()),
+                    float(nbr_av.mean()),
+                ],
+                dtype=np.float32,
+            )
+            global_state = np.concatenate([obs, summary], axis=0)
+        else:
+            global_state = None
         return obs, mask, global_state
 
     def _deliver_due_events(self, t_now_s: float) -> None:
@@ -755,7 +758,9 @@ class TaskOffloadingSim:
 
             for task_idx in self._slot_task_indices[slot]:
                 node_id = int(self.tasks.node_idx[task_idx])
-                obs, mask, gstate = self.build_observation(node_id, task_idx, t_now_s)
+                obs, mask, gstate = self.build_observation(
+                    node_id, task_idx, t_now_s, include_global_state=pass_global_state
+                )
                 if pass_global_state:
                     action = int(policy_fn(obs, mask, gstate, node_id, t_now_s, task_idx))
                 else:

@@ -248,49 +248,65 @@ def train_stage7_marl(
             mask_arr = np.stack(mask_l, axis=0).astype(bool)
             act_arr = np.array(act_l, dtype=np.int64)
             node_arr = np.array(node_l, dtype=np.int32)
-            rew_arr = np.array([outcomes.get(tid, 0.0) for tid in tid_l], dtype=np.float32)
+            rew_arr = np.array([outcomes[tid].reward for tid in tid_l], dtype=np.float32)
 
-            n_samples = len(obs_arr)
-            sub_idx = np.arange(n_samples)
-            if n_samples > 12000:
-                sub_idx = rng.choice(n_samples, size=12000, replace=False)
-                sub_idx.sort()
+            next_obs_arr = obs_arr.copy()
+            next_mask_arr = mask_arr.copy()
+            done_arr = np.zeros(len(tid_l), dtype=bool)
+            for nid in range(ds.n_nodes):
+                idxs = np.flatnonzero(node_arr == nid)
+                if len(idxs) > 0:
+                    if len(idxs) > 1:
+                        next_obs_arr[idxs[:-1]] = obs_arr[idxs[1:]]
+                        next_mask_arr[idxs[:-1]] = mask_arr[idxs[1:]]
+                    done_arr[idxs[-1]] = True
 
-            replay_buf.add_batch(
-                obs_arr[sub_idx],
-                mask_arr[sub_idx],
-                act_arr[sub_idx],
-                rew_arr[sub_idx],
-                node_arr[sub_idx],
-                gamma=gamma,
-            )
+            replay_buf.add_batch(obs_arr, mask_arr, act_arr, rew_arr, next_obs_arr, next_mask_arr, done_arr)
 
-        # Gradient updates
-        if len(replay_buf) >= 128:
-            n_updates = min(16, max(4, len(replay_buf) // 300))
+        # GPU-accelerated minibatch updates
+        ep_loss = 0.0
+        if replay_buf.size >= 256:
             q_online.train()
+            n_updates = min(48, getattr(cfg.marl, "dqn_updates_per_episode", 48))
+            bs = min(replay_buf.size, getattr(cfg.marl, "dqn_batch_size", 256))
+            losses = []
+
             for _ in range(n_updates):
-                s_obs, s_mask, s_act, s_ret, s_next_obs, s_next_mask = replay_buf.sample(128, rng, dev)
-                q_vals = q_online(s_obs, s_mask)
-                q_taken = q_vals.gather(1, s_act.unsqueeze(1)).squeeze(1)
+                bo, bm, ba, br, bno, bnm, bd = replay_buf.sample(bs, rng)
+                t_o = torch.from_numpy(bo).to(dev)
+                t_m = torch.from_numpy(bm).to(dev)
+                t_a = torch.from_numpy(ba).to(dev)
+                t_r = torch.from_numpy(br).to(dev)
+                t_no = torch.from_numpy(bno).to(dev)
+                t_nm = torch.from_numpy(bnm).to(dev)
+                t_d = torch.from_numpy(bd).to(dev).float()
 
                 with torch.no_grad():
-                    next_q_online = q_online(s_next_obs, s_next_mask)
-                    next_actions = next_q_online.argmax(dim=1, keepdim=True)
-                    next_q_target = q_target(s_next_obs, s_next_mask)
-                    next_target_val = next_q_target.gather(1, next_actions).squeeze(1)
-                    target = s_ret + gamma * next_target_val
+                    best_a = q_online(t_no, t_nm).argmax(dim=-1, keepdim=True)
+                    tgt = t_r + (1.0 - t_d) * gamma * q_target(t_no, t_nm).gather(1, best_a).squeeze(-1)
 
-                loss = F.smooth_l1_loss(q_taken, target)
+                q_taken = q_online(t_o, t_m).gather(1, t_a.unsqueeze(-1)).squeeze(-1)
+                loss = F.smooth_l1_loss(q_taken, tgt, beta=1.0)
+
                 optimizer.zero_grad()
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(q_online.parameters(), 1.0)
+                nn.utils.clip_grad_norm_(q_online.parameters(), 2.0)
                 optimizer.step()
 
-                # Polyak target update
-                tau = 0.005
-                for p_t, p_o in zip(q_target.parameters(), q_online.parameters()):
-                    p_t.data.lerp_(p_o.data, tau)
+                with torch.no_grad():
+                    for p1, p2 in zip(q_online.parameters(), q_target.parameters()):
+                        p2.data.mul_(0.995).add_(p1.data, alpha=0.005)
+                losses.append(float(loss.item()))
+
+            q_online.eval()
+            ep_loss = float(np.mean(losses)) if losses else 0.0
+
+        episode_history.append({
+            "episode": ep,
+            "train_tsr": float(tr_metrics.tsr_pct),
+            "train_reward": float(tr_metrics.mean_reward),
+            "td_loss": float(ep_loss),
+        })
 
         # Validation Rollout
         if ep in eval_eps:
@@ -642,6 +658,12 @@ def main():
     out_base = Path(args.output_dir)
     ckpt_base = Path(args.ckpt_dir)
 
+    n_cpus = os.cpu_count() or 8
+    torch.set_num_threads(min(24, n_cpus))
+    if torch.cuda.is_available() and args.device == "cuda":
+        torch.backends.cudnn.benchmark = True
+        torch.cuda.empty_cache()
+
     for n in args.nodes:
         run_scalability_benchmark(
             n_nodes=n,
@@ -654,6 +676,7 @@ def main():
             output_base=out_base,
             ckpt_base=ckpt_base,
         )
+    sys.exit(0)
 
 
 if __name__ == "__main__":
