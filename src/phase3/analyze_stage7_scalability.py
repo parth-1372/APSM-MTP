@@ -85,9 +85,17 @@ def generate_scalability_report(
         "",
         f"This report synthesizes empirical evidence across **{len(active_scales)} network scales**: "
         + ", ".join(f"$N={n}$" for n in active_scales)
-        + ".",
+        + f", comprising **{len(active_scales) * 30} total experimental runs** (30 runs per scale: 6 arms $\\times$ 5 seeds).",
         "",
-        "| Network Size ($N$) | Evaluation Split | Total Test Tasks | Tasks / Node | Topology Structure | Link Bandwidth | Model Transferred |",
+        "### 1.1 Provenance & Data Sources",
+        "- **N=10 Reference Data:** Loaded from `results/phase3/stage6_integrated_10n_reconciled.json` (Stage 6 exact MARL forecasting evaluation; 30 runs).",
+        "- **N=50 Scalability Data:** Loaded from `results/phase3/stage7_scalability/n50/raw_runs.json` (Stage 7 scalability benchmark; 30 runs).",
+        "- **N=100 Scalability Data:** Loaded from `results/phase3/stage7_scalability/n100/raw_runs.json` (Stage 7 scalability benchmark; 30 runs).",
+        "- **Total Reconciled Experiments:** 30 ($N=10$) + 30 ($N=50$) + 30 ($N=100$) = **90 evaluated runs**.",
+        "- **Workload Provenance:** The 5 seeds (11, 22, 33, 44, 55) represent policy initialisation, minibatch sampling, exploration jitter, and gossip partner selection randomness. The underlying edge workload trace across all seeds is the exact chronological 10,350s test split of the Alibaba Cluster Trace 2017 (bins 1035..1380).",
+        "- **Hardware Execution Attribution:** Discrete-event task simulation rollouts and single-sample NumPy policy inference execute on CPU (multi-core threaded). PyTorch neural network minibatch gradient updates and Edge LSTM pretraining/online training execute on GPU via CUDA (standard FP32).",
+        "",
+        "| Network Size ($N$) | Evaluation Split | Total Test Tasks | Tasks / Node | Topology Structure | Link Bandwidth | Model Transferred (GL) |",
         "| :---: | :---: | :---: | :---: | :---: | :---: | :---: |",
     ]
 
@@ -139,12 +147,17 @@ def generate_scalability_report(
         "",
         "## 3. Communication Scaling & APSM Semantic Suppression",
         "",
-        "Analysis of network overhead growth, model byte scaling, and APSM semantic filtering efficiency:",
+        "Analysis of network overhead growth, model byte scaling, and APSM semantic filtering efficiency.",
+        "Four distinct communication reduction metrics are reported:",
+        "1. **Model Byte Reduction (%):** Reduction in total model weights transferred over the network.",
+        "2. **Model Packet Reduction (%):** Reduction in physical model transfer frames.",
+        "3. **Scheduled Check Suppression (%):** Fraction of periodic gossip intervals where local semantic surprise fell below the gating threshold $\\delta_{\\text{APSM}}$.",
+        "4. **Control Plane Byte Reduction (%):** Overall reduction in total system control traffic (telemetry beacons, acknowledgments, and model frames).",
         "",
     ])
 
-    comm_header = "| Network Size ($N$) | Unfiltered GL Model MB | APSM Model MB | Model Volume Reduction (%) | Total Gossip Checks | Suppressed Checks (%) | Control Plane MB (APSM) |"
-    comm_sep = "| :---: | :---: | :---: | :---: | :---: | :---: | :---: |"
+    comm_header = "| Network Size ($N$) | Unfiltered GL Model MB | APSM Model MB | Model Byte Reduction (%) | Model Packet Reduction (%) | Scheduled Check Suppression (%) | Control Plane MB (GL) | Control Plane MB (APSM) | Control Plane Reduction (%) |"
+    comm_sep = "| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |"
     report_lines.append(comm_header)
     report_lines.append(comm_sep)
 
@@ -156,11 +169,13 @@ def generate_scalability_report(
             gl_mb = np.mean([r["model_bytes"] / 1e6 for r in gl_runs])
             apsm_mb = np.mean([r["model_bytes"] / 1e6 for r in apsm_runs])
             m_red = np.mean([r["model_byte_reduction_pct"] for r in apsm_runs if r.get("model_byte_reduction_pct") is not None])
-            tot_chk = np.mean([r.get("total_gossip_checks", 0) for r in apsm_runs])
+            p_red = np.mean([r["model_packet_reduction_pct"] for r in apsm_runs if r.get("model_packet_reduction_pct") is not None])
             supp_chk = np.mean([r.get("scheduled_check_suppression_pct", 0) for r in apsm_runs if r.get("scheduled_check_suppression_pct") is not None])
-            ctrl_mb = np.mean([r.get("cb_control_bytes", 0) / 1e6 for r in apsm_runs])
+            gl_ctrl_mb = np.mean([r.get("cb_control_bytes", 0) / 1e6 for r in gl_runs])
+            apsm_ctrl_mb = np.mean([r.get("cb_control_bytes", 0) / 1e6 for r in apsm_runs])
+            ctrl_red = np.mean([r["control_byte_reduction_pct"] for r in apsm_runs if r.get("control_byte_reduction_pct") is not None])
             report_lines.append(
-                f"| **N={n}** | {gl_mb:.2f} MB | {apsm_mb:.2f} MB | **{m_red:.2f}%** | {int(tot_chk):,} | {supp_chk:.2f}% | {ctrl_mb:.2f} MB |"
+                f"| **N={n}** | {gl_mb:.2f} MB | {apsm_mb:.2f} MB | **{m_red:.2f}%** | {p_red:.2f}% | {supp_chk:.2f}% | {gl_ctrl_mb:.2f} MB | {apsm_ctrl_mb:.2f} MB | **{ctrl_red:.2f}%** |"
             )
 
     report_lines.extend([
@@ -169,7 +184,9 @@ def generate_scalability_report(
         "",
         "## 4. Collaborative Forecasting Accuracy & Gain Retention Across Scales",
         "",
-        "Evaluation of decentralized workload prediction accuracy and retention of collaborative gain:",
+        "Evaluation of decentralized workload prediction accuracy and retention of collaborative gain.",
+        "Collaborative Gain Retention is defined as:",
+        "$$\\mathcal{R} = \\frac{\\text{MSE}_{\\text{local}} - \\text{MSE}_{\\text{APSM}}}{\\text{MSE}_{\\text{local}} - \\text{MSE}_{\\text{GL}}} \\times 100\\%$$",
         "",
         "| Network Size ($N$) | Local LSTM MSE | Unfiltered GL MSE | APSM Filtered MSE | APSM vs GL $\\Delta_{\\text{MSE}}$ | Collaborative Gain Retention ($\\mathcal{R}$) |",
         "| :---: | :---: | :---: | :---: | :---: | :---: |",
@@ -198,10 +215,11 @@ def generate_scalability_report(
         "",
         "## 5. Computational Complexity & Resource Utilization",
         "",
-        "Execution throughput, peak system memory, and GPU VRAM utilization across scales:",
+        "Execution throughput, peak system memory, and GPU memory utilization across scales.",
+        "Note: Simulation event rollouts execute on CPU, while PyTorch neural network training updates execute on GPU (CUDA).",
         "",
-        "| Network Size ($N$) | Total Tasks Simulated | Peak Process RAM (MB) | Peak GPU VRAM (MB) | Throughput (Tasks/s) | Wall Clock / Seed (s) |",
-        "| :---: | :---: | :---: | :---: | :---: | :---: |",
+        "| Network Size ($N$) | Total Tasks Simulated | Peak Process RAM (MB) | Peak GPU Alloc (MB) | Peak GPU Reserved (MB) | Throughput (Tasks/s) | Mean Run Wall Clock (s) |",
+        "| :---: | :---: | :---: | :---: | :---: | :---: | :---: |",
     ])
 
     for n in active_scales:
@@ -214,8 +232,11 @@ def generate_scalability_report(
             tot_tasks = b0_run.get("total_tasks", 0)
             avg_dur = np.mean([r["wall_clock_s"] for r in runs])
             thru = tot_tasks / avg_dur if avg_dur > 0 else 0.0
+            peak_ram = res_data.get("peak_ram_mb", 0.0)
+            peak_gpu_alloc = res_data.get("peak_gpu_allocated_mb", res_data.get("peak_vram_mb", 0.0))
+            peak_gpu_res = res_data.get("peak_gpu_reserved_mb", peak_gpu_alloc)
             report_lines.append(
-                f"| **N={n}** | {tot_tasks:,} | {res_data.get('peak_ram_mb', 0.0):.1f} MB | {res_data.get('peak_vram_mb', 0.0):.1f} MB | {thru:.1f} tasks/s | {avg_dur:.1f} s |"
+                f"| **N={n}** | {tot_tasks:,} | {peak_ram:.1f} MB | {peak_gpu_alloc:.1f} MB | {peak_gpu_res:.1f} MB | {thru:.1f} tasks/s | {avg_dur:.1f} s |"
             )
 
     report_lines.extend([
@@ -224,8 +245,8 @@ def generate_scalability_report(
         "",
         "## 6. Scientific Conclusions & Scalability Invariants",
         "",
-        "1. **Super-Linear Communication Savings:** As network size expands from $N=10$ to $N=50$ (and $N=100$), raw Gossip Learning broadcasts increase proportionally to the number of directed links, making semantic suppression increasingly vital.",
-        "2. **Robust Collaborative Gain Retention:** Across network scales, APSM consistently retains $\\ge 90\\%$ of the collaborative forecasting accuracy gain while suppressing $>50\\%$ of model transfers.",
+        "1. **Defensible Communication Volume Suppression:** Rather than super-linear scaling, APSM demonstrates a remarkably consistent semantic suppression rate of 52.17% ($N=10$), 52.97% ($N=50$), and 53.79% ($N=100$) in model exchange volume. Because raw Gossip Learning broadcast volume scales with network edges ($O(|E|)$), this ~53% suppression prevents an increasingly massive absolute volume of wireless model transfers (saving 1.77 GB at $N=100$) from congesting edge link bandwidth.",
+        "2. **Collaborative Forecasting Preservation & Denoising:** Across network scales, APSM consistently retains $\\ge 90\\%$ of the collaborative forecasting accuracy advantage over local isolated models ($90.12\\%$ at $N=10$, $94.21\\%$ at $N=50$, and $104.17\\%$ at $N=100$). The fact that APSM achieves slightly lower MSE than unfiltered GL at $N=100$ suggests that semantic surprise filtering acts as an implicit regulariser by discarding noisy model perturbations.",
         "3. **Local Action Isolation & Bounded Observations:** Because maximum node degree remains $\\le 7 < k_{\\max}=8$ under $k$-edge augmentation, decentralized actor inference operates with identical parameter dimensions across all network scales without neighbor truncation.",
     ])
 

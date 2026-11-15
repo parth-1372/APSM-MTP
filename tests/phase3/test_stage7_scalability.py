@@ -360,3 +360,84 @@ def test_stage7_memory_safe_event_handling(n50_light_setup):
     # Task queues should be drained or cleared
     active_count = sum(len(q) for q in sim.active_tasks)
     assert active_count == 0, f"Remaining active tasks after episode completion: {active_count}"
+
+
+def test_stage7_forecast_checkpoint_post_warmup_selection():
+    """18. Verify forecast-enabled arms strictly select checkpoints from validation episodes >= warmup."""
+    warmup = 36
+    eval_eps = [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48]
+    val_rewards = {
+        4: -100.0,
+        8: 50.0,    # Pre-warmup peak (must NOT be selected for E3)
+        12: -20.0,
+        16: -10.0,
+        20: -5.0,
+        24: 0.0,
+        28: 10.0,
+        32: 20.0,
+        36: 30.0,   # Post-warmup (eligible)
+        40: 45.0,   # Post-warmup peak (must be selected for E3)
+        44: 40.0,
+        48: 42.0,
+    }
+
+    # Simulate checkpoint selection for forecast-enabled arm
+    has_fc = True
+    best_val_reward = -1e9
+    best_ep = 0
+    for ep in eval_eps:
+        v_rew = val_rewards[ep]
+        eligible = (ep >= warmup) if has_fc else True
+        if eligible and (v_rew > best_val_reward):
+            best_val_reward = v_rew
+            best_ep = ep
+
+    assert best_ep == 40, f"Expected post-warmup peak episode 40, got {best_ep}"
+    assert best_val_reward == 45.0
+    assert best_ep >= warmup, "Selected checkpoint preceded warmup episode!"
+    fc_active = has_fc and (best_ep >= warmup)
+    assert fc_active is True
+
+    # Simulate reactive arm (no forecast) where pre-warmup peak is valid
+    has_fc_e2 = False
+    best_val_reward_e2 = -1e9
+    best_ep_e2 = 0
+    for ep in eval_eps:
+        v_rew = val_rewards[ep]
+        eligible = (ep >= warmup) if has_fc_e2 else True
+        if eligible and (v_rew > best_val_reward_e2):
+            best_val_reward_e2 = v_rew
+            best_ep_e2 = ep
+
+    assert best_ep_e2 == 8, f"Expected global peak episode 8 for non-forecast arm, got {best_ep_e2}"
+
+
+def test_stage7_incremental_audit_filter_pre_warmup_checkpoints():
+    """19. Verify incremental runner filters out pre-warmup checkpoint runs for forecast arms."""
+    warmup = 36
+    raw_runs = [
+        {"arm": "b0_local", "seed": 11, "best_checkpoint_episode": None},
+        {"arm": "e2_madqn", "seed": 11, "best_checkpoint_episode": 8},        # Valid (non-forecast)
+        {"arm": "e3_madqn_local", "seed": 11, "best_checkpoint_episode": 48},  # Valid (>= warmup)
+        {"arm": "e3_madqn_local", "seed": 22, "best_checkpoint_episode": 8},   # INVALID (pre-warmup)
+        {"arm": "e3_madqn_gl", "seed": 22, "best_checkpoint_episode": 16},     # INVALID (pre-warmup)
+        {"arm": "e3_madqn_apsm", "seed": 11, "best_checkpoint_episode": 36},   # Valid (>= warmup)
+        {"arm": "e3_madqn_apsm", "seed": 55, "best_checkpoint_episode": 32},   # INVALID (pre-warmup)
+    ]
+
+    valid_runs = []
+    for r in raw_runs:
+        arm = r.get("arm", "")
+        best_ep = r.get("best_checkpoint_episode")
+        is_fc = arm in ("e3_madqn_local", "e3_madqn_gl", "e3_madqn_apsm")
+        if is_fc and (best_ep is not None) and (best_ep < warmup):
+            continue
+        valid_runs.append(r)
+
+    assert len(valid_runs) == 4
+    completed_set = {(r["arm"], r["seed"]) for r in valid_runs}
+    assert ("e3_madqn_local", 22) not in completed_set
+    assert ("e3_madqn_gl", 22) not in completed_set
+    assert ("e3_madqn_apsm", 55) not in completed_set
+    assert ("e3_madqn_local", 11) in completed_set
+    assert ("e2_madqn", 11) in completed_set

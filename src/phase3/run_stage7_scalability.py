@@ -59,13 +59,26 @@ def sanitize_json_obj(obj: Any) -> Any:
 
 
 def get_resource_usage() -> Dict[str, float]:
-    """Capture current process RAM and GPU VRAM usage."""
+    """
+    Capture process system metrics and CUDA device memory.
+    Simulation and NumPy policy rollouts execute on CPU.
+    CUDA acceleration is used for PyTorch neural network minibatch updates and LSTM training.
+    """
     proc = psutil.Process(os.getpid())
     ram_mb = proc.memory_info().rss / (1024.0 * 1024.0)
-    vram_mb = 0.0
+    cpu_time_s = proc.cpu_times().user + proc.cpu_times().system
+    gpu_alloc_mb = 0.0
+    gpu_res_mb = 0.0
     if torch.cuda.is_available():
-        vram_mb = torch.cuda.max_memory_allocated() / (1024.0 * 1024.0)
-    return {"ram_mb": ram_mb, "vram_mb": vram_mb}
+        gpu_alloc_mb = torch.cuda.max_memory_allocated() / (1024.0 * 1024.0)
+        gpu_res_mb = torch.cuda.max_memory_reserved() / (1024.0 * 1024.0)
+    return {
+        "ram_mb": ram_mb,
+        "cpu_time_s": cpu_time_s,
+        "gpu_allocated_mb": gpu_alloc_mb,
+        "gpu_reserved_mb": gpu_res_mb,
+        "vram_mb": gpu_alloc_mb,  # backward compatibility
+    }
 
 
 def run_baseline_b0_stage7(
@@ -172,6 +185,10 @@ def train_stage7_marl(
 ) -> Dict[str, Any]:
     """Train and evaluate Parameter-Shared Double Dueling MADQN Agent on N-node topology."""
     t_start = time.perf_counter()
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats()
+    proc = psutil.Process(os.getpid())
+    cpu_start_s = proc.cpu_times().user + proc.cpu_times().system
     torch.manual_seed(seed)
     np.random.seed(seed)
     rng = np.random.default_rng(seed * 43 + 17)
@@ -324,7 +341,8 @@ def train_stage7_marl(
                 bin_callback=val_cb,
             )
             v_rew = val_metrics.mean_reward
-            if v_rew > best_val_reward:
+            eligible_for_checkpoint = (ep >= warmup) if has_fc else True
+            if eligible_for_checkpoint and (v_rew > best_val_reward):
                 best_val_reward = v_rew
                 best_ep = ep
                 best_weights = copy.deepcopy(q_online.state_dict())
@@ -334,7 +352,16 @@ def train_stage7_marl(
                 "val_reward": v_rew,
                 "val_tsr": val_metrics.tsr_pct,
                 "train_tsr": tr_metrics.tsr_pct,
+                "checkpoint_eligible": eligible_for_checkpoint,
             })
+
+    t_train_done = time.perf_counter()
+    training_wall_clock_s = t_train_done - t_start
+
+    # Safety fallback if no post-warmup checkpoint qualified
+    if best_ep == 0:
+        best_ep = episodes
+        best_weights = copy.deepcopy(q_online.state_dict())
 
     # Final Evaluation on the complete Test split
     q_online.load_state_dict(best_weights)
@@ -368,16 +395,26 @@ def train_stage7_marl(
         )
         test_cb = lambda b, t: test_mgr.on_bin_boundary(b, t, test_sim)
 
+    t_eval_start = time.perf_counter()
     eval_runner = _NumpyDuelingQRunner(q_online)
     test_metrics, outcomes = test_sim.run_marl_episode(
         lambda o, m, g, nid, t, tid: eval_runner.act(o, m, rng, epsilon=0.0),
         bin_callback=test_cb,
     )
+    t_eval_done = time.perf_counter()
+    eval_wall_clock_s = t_eval_done - t_eval_start
     if test_mgr is not None:
         test_mgr.finalize_test_metrics()
 
     ledger = (test_mgr.ledger.reconcile(test_sim)) if test_mgr is not None else CommunicationLedger().reconcile(test_sim)
     dur = time.perf_counter() - t_start
+    cpu_end_s = proc.cpu_times().user + proc.cpu_times().system
+    cpu_time_s = cpu_end_s - cpu_start_s
+    gpu_alloc_mb = 0.0
+    gpu_res_mb = 0.0
+    if torch.cuda.is_available():
+        gpu_alloc_mb = torch.cuda.max_memory_allocated() / (1024.0 * 1024.0)
+        gpu_res_mb = torch.cuda.max_memory_reserved() / (1024.0 * 1024.0)
 
     if test_mgr is not None:
         fc_metrics = test_mgr.compute_forecasting_metrics()
@@ -395,7 +432,13 @@ def train_stage7_marl(
         "seed": seed,
         "best_checkpoint_episode": best_ep,
         "best_val_reward": best_val_reward,
+        "fc_active": bool(q_online.fc_res.fc_active),
         "wall_clock_s": dur,
+        "training_wall_clock_s": training_wall_clock_s,
+        "eval_wall_clock_s": eval_wall_clock_s,
+        "cpu_time_s": cpu_time_s,
+        "gpu_allocated_mb": gpu_alloc_mb,
+        "gpu_reserved_mb": gpu_res_mb,
         "suppression_rate_pct": ledger.suppression_rate_pct if arm == "e3_madqn_apsm" else None,
         "cb_control_bytes": ledger.cb_control_bytes,
         "cb_system_bytes": ledger.cb_system_bytes,
@@ -434,12 +477,22 @@ def run_scalability_benchmark(
     ckpt_dir.mkdir(parents=True, exist_ok=True)
     raw_runs_file = scale_dir / "raw_runs.json"
 
-    # Load existing runs for incremental recovery
+    # Load existing runs for incremental recovery with audit validation
     existing_runs: List[Dict[str, Any]] = []
     if raw_runs_file.exists():
         try:
-            existing_runs = json.loads(raw_runs_file.read_text(encoding="utf-8"))
-            print(f"Loaded {len(existing_runs)} existing runs from {raw_runs_file}")
+            raw_data = json.loads(raw_runs_file.read_text(encoding="utf-8"))
+            print(f"Loaded {len(raw_data)} existing runs from {raw_runs_file}")
+            for r in raw_data:
+                arm = r.get("arm", "")
+                seed = r.get("seed")
+                best_ep = r.get("best_checkpoint_episode")
+                is_fc = arm in ("e3_madqn_local", "e3_madqn_gl", "e3_madqn_apsm")
+                # AUDIT GATE: If forecast-enabled, candidate checkpoint MUST NOT precede warmup
+                if is_fc and (best_ep is not None) and (not smoke) and (best_ep < warmup):
+                    print(f"  [AUDIT] Flagged for rerun (invalid checkpoint pre-warmup): {arm} Seed {seed} (best_ep={best_ep} < warmup={warmup})")
+                    continue
+                existing_runs.append(r)
         except Exception as e:
             print(f"Warning: could not load existing runs ({e}); starting fresh.")
             existing_runs = []
@@ -588,6 +641,10 @@ def run_scalability_benchmark(
         r["bytes_per_edge"] = float(r.get("cb_control_bytes", 0)) / float(max(1, n_edges))
         r["bytes_per_simulated_hour"] = float(r.get("cb_control_bytes", 0)) / 2.875
 
+    # Sort runs deterministically by arm order and seed
+    arm_order = {a: i for i, a in enumerate(arms)}
+    all_runs.sort(key=lambda r: (arm_order.get(r["arm"], 99), r["seed"]))
+
     # Re-save raw runs with paired reductions
     clean_runs = sanitize_json_obj(all_runs)
     raw_runs_file.write_text(json.dumps(clean_runs, indent=2, allow_nan=False), encoding="utf-8")
@@ -608,7 +665,7 @@ def run_scalability_benchmark(
         ctrl_b = [r["cb_control_bytes"] for r in arm_runs]
         fcs = [r["fc_mse"] for r in arm_runs if r.get("fc_mse") is not None]
 
-        summary["arms"][arm] = {
+        arm_summary = {
             "n_runs": len(arm_runs),
             "tsr_mean": float(np.mean(tsrs)),
             "tsr_std": float(np.std(tsrs, ddof=1)) if len(tsrs) > 1 else 0.0,
@@ -622,15 +679,32 @@ def run_scalability_benchmark(
             "fc_mse_mean": float(np.mean(fcs)) if fcs else None,
             "fc_mse_std": float(np.std(fcs, ddof=1)) if len(fcs) > 1 else (0.0 if fcs else None),
         }
+        if arm == "e3_madqn_apsm":
+            m_reds = [r["model_byte_reduction_pct"] for r in arm_runs if r.get("model_byte_reduction_pct") is not None]
+            p_reds = [r["model_packet_reduction_pct"] for r in arm_runs if r.get("model_packet_reduction_pct") is not None]
+            c_reds = [r["control_byte_reduction_pct"] for r in arm_runs if r.get("control_byte_reduction_pct") is not None]
+            s_chks = [r["scheduled_check_suppression_pct"] for r in arm_runs if r.get("scheduled_check_suppression_pct") is not None]
+            arm_summary.update({
+                "model_byte_reduction_pct_mean": float(np.mean(m_reds)) if m_reds else None,
+                "model_packet_reduction_pct_mean": float(np.mean(p_reds)) if p_reds else None,
+                "control_byte_reduction_pct_mean": float(np.mean(c_reds)) if c_reds else None,
+                "scheduled_check_suppression_pct_mean": float(np.mean(s_chks)) if s_chks else None,
+            })
+        summary["arms"][arm] = arm_summary
 
     (scale_dir / "summary.json").write_text(json.dumps(sanitize_json_obj(summary), indent=2, allow_nan=False), encoding="utf-8")
 
-    # Resource usage log
+    # Resource usage log with detailed CPU / GPU attribution
     res_log = {
         "n_nodes": n_nodes,
+        "compute_device_marl": "cuda",
+        "compute_device_simulation": "cpu",
         "peak_ram_mb": max(r["resource_usage"]["ram_mb"] for r in all_runs),
+        "peak_gpu_allocated_mb": max(r.get("gpu_allocated_mb", r["resource_usage"].get("gpu_allocated_mb", 0.0)) for r in all_runs),
+        "peak_gpu_reserved_mb": max(r.get("gpu_reserved_mb", r["resource_usage"].get("gpu_reserved_mb", 0.0)) for r in all_runs),
         "peak_vram_mb": max(r["resource_usage"]["vram_mb"] for r in all_runs),
         "total_wall_clock_s": sum(r["wall_clock_s"] for r in all_runs),
+        "total_cpu_time_s": sum(r.get("cpu_time_s", 0.0) for r in all_runs),
     }
     (scale_dir / "resource_usage.json").write_text(json.dumps(res_log, indent=2), encoding="utf-8")
     print(f"\nCompleted Stage 7 Scalability Benchmark for N={n_nodes}! Summary written to {scale_dir / 'summary.json'}")
