@@ -46,10 +46,12 @@ All results are derived from complete, programmatically validated benchmark data
 
 ---
 
-## 3. Authoritative Research Documentation
+## 3. Authoritative Research Documentation & Learning Guide
 
-Comprehensive documentation, theoretical proofs, literature mapping, and detailed statistical analyses are maintained in:
+Comprehensive documentation, theoretical proofs, literature mapping, detailed statistical analyses, and a viva-defence learning guide are maintained in:
 
+- **[Phase 3 Learning Guide & Defence Handbook (`docs/PHASE3_LEARNING_GUIDE.md`)](docs/PHASE3_LEARNING_GUIDE.md)**  
+  *The core intuitive learning guide.* Written in straightforward English to teach the system architecture, mathematical mechanics, algorithm design decisions, experimental chronology, and viva-defence preparation (includes a glossary and 10 model viva self-check questions).
 - **[Primary Research Report (`docs/PHASE3_FINAL_RESEARCH_REPORT.md`)](docs/PHASE3_FINAL_RESEARCH_REPORT.md)**  
   *The authoritative 17-section Phase 3 thesis research report.* Covers the complete problem formulation, literature survey and verified DOIs, research decision traceability, system architecture blueprints, mathematical derivations, experimental protocols, Holm-Bonferroni corrected hypothesis testing, and computational complexity analysis.
 - **[Literature & References Index (`docs/references/REFERENCES_INDEX.md`)](docs/references/REFERENCES_INDEX.md)**  
@@ -68,6 +70,7 @@ APSM-MTP/
 ├── 2022IMT082-MTP1.pdf                       # MTP Phase 1 reference thesis report
 │
 ├── docs/                                     # Documentation root
+│   ├── PHASE3_LEARNING_GUIDE.md              # ★ Phase 3 learning guide & viva handbook
 │   ├── PHASE3_FINAL_RESEARCH_REPORT.md       # ★ Authoritative 17-section research report
 │   ├── references/                           # Essential citations and paper mappings
 │   │   └── REFERENCES_INDEX.md
