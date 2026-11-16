@@ -1,0 +1,11 @@
+{
+  "n_nodes": 100,
+  "compute_device_marl": "cuda",
+  "compute_device_simulation": "cpu",
+  "peak_ram_mb": 2078.61328125,
+  "peak_gpu_allocated_mb": 94.30126953125,
+  "peak_gpu_reserved_mb": 100.0,
+  "peak_vram_mb": 94.30126953125,
+  "total_wall_clock_s": 55460.92871170008,
+  "total_cpu_time_s": 8794.578125
+}

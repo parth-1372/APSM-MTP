@@ -1,0 +1,14 @@
+{
+  "n_nodes": 50,
+  "k_edge_connectivity": 3,
+  "n_undirected_edges": 85,
+  "min_degree": 3,
+  "mean_degree": 3.4,
+  "max_degree": 7,
+  "c_cpu_cap": 20.0,
+  "deadline_slack_kappa": 2.2,
+  "q_max": 48,
+  "k_max_neighbors": 8,
+  "trace_time_horizon_s": 41400,
+  "test_horizon_s": 10350
+}

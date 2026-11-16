@@ -1,0 +1,38 @@
+============================= test session starts =============================
+platform win32 -- Python 3.10.0, pytest-8.4.2, pluggy-1.7.0 -- C:\Users\btpUser\Desktop\Parth_MTP\APSM-MTP\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\btpUser\Desktop\Parth_MTP\APSM-MTP
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 28 items
+
+tests/phase3/test_stage1_data.py::test_schema_verification PASSED        [  3%]
+tests/phase3/test_stage1_data.py::test_topology_tier1_sparse_partial_mesh PASSED [  7%]
+tests/phase3/test_stage1_data.py::test_curated_6n_dataset_causality_and_non_leakage PASSED [ 10%]
+tests/phase3/test_stage3_forecasting.py::test_p2_local_head_isolation_and_bytes PASSED [ 14%]
+tests/phase3/test_stage3_forecasting.py::test_age_weighted_merge_fixes_zero_age_bug PASSED [ 17%]
+tests/phase3/test_stage3_forecasting.py::test_age_weighted_merge_self_mix_alpha PASSED [ 21%]
+tests/phase3/test_stage3_forecasting.py::test_common_init_zero_pretrain_identical_across_nodes PASSED [ 25%]
+tests/phase3/test_stage3_forecasting.py::test_apsm_h1_warmup_and_heartbeat_invariants PASSED [ 28%]
+tests/phase3/test_stage3_forecasting.py::test_stage3_equal_cadence_and_finite_metrics PASSED [ 32%]
+tests/phase3/test_stage4_simulator.py::test_stage4_anti_loop_conservation_and_byte_audit PASSED [ 35%]
+tests/phase3/test_stage4_simulator.py::test_stage4_strict_causality_and_non_oracle_staleness PASSED [ 39%]
+tests/phase3/test_stage4_simulator.py::test_stage4_apsm_t_gating_and_e1_beats_b0 PASSED [ 42%]
+tests/phase3/test_stage5_marl.py::test_numpy_runners_match_pytorch_and_enforce_mask PASSED [ 46%]
+tests/phase3/test_stage5_marl.py::test_ctde_decentralized_actor_isolation_vs_ippo PASSED [ 50%]
+tests/phase3/test_stage5_marl.py::test_stage5_short_training_step_and_causal_local_lstm_matrix PASSED [ 53%]
+tests/phase3/test_stage5_marl.py::test_run_marl_episode_conservation_delayed_outcomes_and_callbacks PASSED [ 57%]
+tests/phase3/test_stage5_marl.py::test_run_marl_episode_gstate_strict_causality PASSED [ 60%]
+tests/phase3/test_stage6_integration.py::test_channel_separation_and_ledger PASSED [ 64%]
+tests/phase3/test_stage6_integration.py::test_live_forecast_injection PASSED [ 67%]
+tests/phase3/test_stage6_integration.py::test_apsm_suppression_at_10n PASSED [ 71%]
+tests/phase3/test_stage6_integration.py::test_100_percent_task_conservation PASSED [ 75%]
+tests/phase3/test_stage6_integration.py::test_strict_temporal_causality PASSED [ 78%]
+tests/phase3/test_stage6_integration.py::test_shared_physical_link_contention PASSED [ 82%]
+tests/phase3/test_stage6_integration.py::test_madqn_pytorch_numpy_parity PASSED [ 85%]
+tests/phase3/test_stage6_integration.py::test_marl_deep_temporal_causality_with_instrumentation PASSED [ 89%]
+tests/phase3/test_stage6_integration.py::test_model_packet_delivery_vs_bin_callback_assimilation PASSED [ 92%]
+tests/phase3/test_stage6_integration.py::test_holm_bonferroni_adjustment PASSED [ 96%]
+tests/phase3/test_stage6_integration.py::test_forecasting_metrics_time_alignment_and_non_leakage PASSED [100%]
+
+======================= 28 passed in 142.65s (0:02:22) ========================

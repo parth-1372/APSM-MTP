@@ -1,0 +1,93 @@
+{
+  "n_nodes": 100,
+  "arms": {
+    "b0_local": {
+      "n_runs": 5,
+      "tsr_mean": 93.8885157824043,
+      "tsr_std": 0.0,
+      "effective_latency_mean": 48.002555696993234,
+      "effective_latency_p95": 186.40000915527344,
+      "offload_rate_mean": 0.0,
+      "drop_rate_mean": 6.111484217595701,
+      "model_bytes_mean": 0.0,
+      "model_packets_mean": 0.0,
+      "control_bytes_mean": 0.0,
+      "fc_mse_mean": null,
+      "fc_mse_std": null
+    },
+    "e1_greedy": {
+      "n_runs": 5,
+      "tsr_mean": 97.30463877962198,
+      "tsr_std": 0.0,
+      "effective_latency_mean": 41.94577265109459,
+      "effective_latency_p95": 160.19385283449287,
+      "offload_rate_mean": 39.66588314304902,
+      "drop_rate_mean": 2.69536122037801,
+      "model_bytes_mean": 0.0,
+      "model_packets_mean": 0.0,
+      "control_bytes_mean": 10594080.0,
+      "fc_mse_mean": null,
+      "fc_mse_std": null
+    },
+    "e2_madqn": {
+      "n_runs": 5,
+      "tsr_mean": 96.67166362851387,
+      "tsr_std": 0.23011145054025448,
+      "effective_latency_mean": 43.22881801330013,
+      "effective_latency_p95": 171.67357899456718,
+      "offload_rate_mean": 18.647582269979853,
+      "drop_rate_mean": 3.3283363714861367,
+      "model_bytes_mean": 0.0,
+      "model_packets_mean": 0.0,
+      "control_bytes_mean": 8911593.6,
+      "fc_mse_mean": null,
+      "fc_mse_std": null
+    },
+    "e3_madqn_local": {
+      "n_runs": 5,
+      "tsr_mean": 96.54993763791614,
+      "tsr_std": 0.27316819259905356,
+      "effective_latency_mean": 43.61262729725727,
+      "effective_latency_p95": 169.93768429608755,
+      "offload_rate_mean": 14.27839873356999,
+      "drop_rate_mean": 3.4500623620838526,
+      "model_bytes_mean": 0.0,
+      "model_packets_mean": 0.0,
+      "control_bytes_mean": 8561846.4,
+      "fc_mse_mean": 0.038085098215145746,
+      "fc_mse_std": 2.055313351647184e-05
+    },
+    "e3_madqn_gl": {
+      "n_runs": 5,
+      "tsr_mean": 96.56252998177109,
+      "tsr_std": 0.2935626040143991,
+      "effective_latency_mean": 43.50013753051651,
+      "effective_latency_p95": 171.04200164549383,
+      "offload_rate_mean": 16.968243308068693,
+      "drop_rate_mean": 3.4374700182289173,
+      "model_bytes_mean": 3289520640.0,
+      "model_packets_mean": 57792.0,
+      "control_bytes_mean": 3298297804.8,
+      "fc_mse_mean": 0.037632883844112675,
+      "fc_mse_std": 1.79392961620336e-05
+    },
+    "e3_madqn_apsm": {
+      "n_runs": 5,
+      "tsr_mean": 96.62980907608173,
+      "tsr_std": 0.27363868241894435,
+      "effective_latency_mean": 43.65256941035441,
+      "effective_latency_p95": 169.99844254716058,
+      "offload_rate_mean": 14.441499568262497,
+      "drop_rate_mean": 3.3701909239182575,
+      "model_bytes_mean": 1519923376.0,
+      "model_packets_mean": 26702.8,
+      "control_bytes_mean": 1528498278.4,
+      "fc_mse_mean": 0.037614011747490225,
+      "fc_mse_std": 1.4730347747751145e-05,
+      "model_byte_reduction_pct_mean": 53.794988925802876,
+      "model_packet_reduction_pct_mean": 53.794988925802876,
+      "control_byte_reduction_pct_mean": 53.657966624950475,
+      "scheduled_check_suppression_pct_mean": 53.71627906976744
+    }
+  }
+}

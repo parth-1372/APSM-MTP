@@ -1,0 +1,19 @@
+{
+  "n_nodes": 6,
+  "n_bins": 1380,
+  "dt_bin_s": 30,
+  "t_start_s": 39600,
+  "t_end_s": 81000,
+  "train_end_bin": 828,
+  "val_end_bin": 1035,
+  "lookback_L": 8,
+  "total_task_events": 45749,
+  "selected_machine_ids": [
+    547,
+    664,
+    223,
+    628,
+    995,
+    536
+  ]
+}

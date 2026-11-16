@@ -1,67 +1,175 @@
-# APSM-MTP: Adaptive Predictive-Semantic Filter for Gossip Learning
+# APSM-MTP: Decentralized Edge Workload Forecasting using Semantic Gossip Learning and Agentic AI
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![PyTorch 2.0+](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
+[![Tests: 47 Passed](https://img.shields.io/badge/tests-47%20passed-brightgreen.svg)](tests/phase3)
 
-> **M.Tech Research Project** — Extending Gossip Learning (Tundo et al. 2025, IEEE TNSM) with an Adaptive Predictive-Semantic Filter (APSM) to reduce bandwidth consumption in decentralised edge ML networks.
+> **Master's Thesis Research Project (APSM-MTP)**  
+> Author: Parth (Roll No. 2022IMT082)  
+> Department of Computer Science & Engineering  
+> Base Paper: Alessandro Tundo et al., *"Gossip Learning for Edge Computing: A Decentralized Machine Learning Approach to Urban Traffic Prediction,"* **IEEE Transactions on Network and Service Management (TNSM)**, 2025. [DOI: 10.1109/TNSM.2024.3491200](https://doi.org/10.1109/TNSM.2024.3491200).
 
-## Research Summary
+---
 
-The base paper (Tundo 2025) implements a fully decentralised, serverless Gossip Learning system for urban traffic prediction using the Porto Taxi dataset. Nodes broadcast their model weights after **every training round**, regardless of whether the update carries new information.
+## 1. Executive Overview
 
-**Our contribution (Phase 2):** We introduce the **Adaptive Predictive-Semantic Filter (APSM)** — a pre-send gating mechanism that suppresses transmissions when the node's validation-loss surprise ε(t) falls within the adaptive noise band τ(t) = k·σ(ε). Result: **53.6% packet reduction with only 0.69% MSE degradation**.
+In decentralized edge computing environments, edge nodes must forecast incoming computational demand and dynamically offload tasks to resource-abundant neighbors without relying on a centralized coordinator or single point of failure (SPOF). However, conventional decentralized collaborative learning (such as Gossip Learning) suffers from **blind periodic transmissions**, exchanging complete neural network weights across wireless channels regardless of whether local parameter updates contain novel information.
 
-## Quick Start
+**APSM-MTP** resolves this fundamental communication-computation tension through a tri-part integrated architecture:
+1. **Adaptive Predictive-Semantic Mechanism (APSM):** An online pre-transmission gating filter that monitors local validation-loss surprise $\varepsilon_i(t)$ against a self-calibrating temporal noise floor $\tau_i(t) = \mu_i(t) + k \cdot \sigma_i(t)$. Redundant weight exchanges are suppressed while informative updates pass unimpeded, enforced by a fail-safe periodic heartbeat ($H=5$).
+2. **Decentralized Sequence Forecasting Engine:** Edge nodes maintain local recurrent sequence forecasters (GRU/LSTM) trained on continuous workload traces, collaboratively regularized across sparse peer-to-peer overlay graphs via push-sum age-weighted model mixing.
+3. **Agentic Multi-Agent Reinforcement Learning (MADQN):** Independent Double-DQN agents perform decentralized, proactive task offloading informed by local workload predictions and spatial neighbor queue perceptions, enforcing strict TTL conservation without central orchestration.
+
+---
+
+## 2. Validated Empirical Findings Across Scales ($N=10, 50, 100$)
+
+All results are derived from complete, programmatically validated benchmark datasets comprising **90 experimental runs** (30 runs per scale across 5 independent seeds: 11, 22, 33, 44, 55) evaluated on real industrial workload traces from **Alibaba Cluster Data v2017** mapped to the **Porto Spatial Edge Topology**:
+
+| Scale ($N$) | Forecasting Arm | Test MSE | $\Delta_{\text{MSE}}$ vs GL | Gain Retention $\mathcal{R}$ | Model Payload Exchanged | Bandwidth Reduction vs GL | Task Success Rate (TSR) |
+|---|---|---|---|---|---|---|---|
+| **$N = 10$** | **Local No-Gossip** | 0.037063 | — | — | 0.00 MB | 100.00% | 84.15% |
+| | **Gossip Learning (Base)** | 0.035884 | Baseline | Baseline | 313.29 MB | 0.00% | 84.07% |
+| | **APSM-MTP (Ours)** | **0.036000** | +0.000117 | **90.12%** | **149.86 MB** | **52.17%** | **84.15%** |
+| **$N = 50$** | **Local No-Gossip** | 0.037977 | — | — | 0.00 MB | 100.00% | 95.75% |
+| | **Gossip Learning (Base)** | 0.037510 | Baseline | Baseline | 1,664.34 MB | 0.00% | 95.75% |
+| | **APSM-MTP (Ours)** | **0.037537** | +0.000027 | **94.21%** | **782.72 MB** | **52.97%** | **95.73%** |
+| **$N = 100$** | **Local No-Gossip** | 0.038085 | — | — | 0.00 MB | 100.00% | 96.55% |
+| | **Gossip Learning (Base)** | 0.037633 | Baseline | Baseline | 3,289.52 MB | 0.00% | 96.56% |
+| | **APSM-MTP (Ours)** | **0.037614** | **-0.000019** | **104.17%** | **1,519.92 MB** | **53.79%** | **96.63%** |
+
+### Key Experimental Insights:
+- **Bandwidth Reduction:** APSM consistently cuts wireless model synchronization overhead by **52.17% to 53.79%** across all network scales, saving over **1.77 GB** of wireless transmission payload at $N=100$.
+- **Forecasting Fidelity:** At $N=10$ and $N=50$, APSM retains **90.12%** and **94.21%** of the full collaborative gossip gain, with negligible absolute MSE differences ($\le 0.000117$). At $N=100$, APSM matches and marginally outperforms unconstrained Gossip Learning ($104.17\%$ gain retention) due to the noise-filtering effect of semantic gating over large peer graphs.
+- **Task Offloading Performance:** MARL offloading achieves high task completion ($96.63\%$ at $N=100$), maintaining bounded service latency and zero packet loss.
+
+---
+
+## 3. Authoritative Research Documentation
+
+Comprehensive documentation, theoretical proofs, literature mapping, and detailed statistical analyses are maintained in:
+
+- **[Primary Research Report (`docs/PHASE3_FINAL_RESEARCH_REPORT.md`)](docs/PHASE3_FINAL_RESEARCH_REPORT.md)**  
+  *The authoritative 17-section Phase 3 thesis research report.* Covers the complete problem formulation, literature survey and verified DOIs, research decision traceability, system architecture blueprints, mathematical derivations, experimental protocols, Holm-Bonferroni corrected hypothesis testing, and computational complexity analysis.
+- **[Literature & References Index (`docs/references/REFERENCES_INDEX.md`)](docs/references/REFERENCES_INDEX.md)**  
+  Complete bibliographic records, verified DOIs, arXiv preprints, and local PDF mappings for all foundational papers.
+- **[Historical Archive Index (`docs/archive/ARCHIVE_INDEX.md`)](docs/archive/ARCHIVE_INDEX.md)**  
+  Archival directory housing previous Phase 1, Phase 2, and intermediate Phase 3 audit reports and design reviews.
+
+---
+
+## 4. Repository Layout
+
+```text
+APSM-MTP/
+├── README.md                                 # Primary repository overview
+├── pyproject.toml                            # Build configuration and dependencies
+├── 2022IMT082-MTP1.pdf                       # MTP Phase 1 reference thesis report
+│
+├── docs/                                     # Documentation root
+│   ├── PHASE3_FINAL_RESEARCH_REPORT.md       # ★ Authoritative 17-section research report
+│   ├── references/                           # Essential citations and paper mappings
+│   │   └── REFERENCES_INDEX.md
+│   └── archive/                              # Historically preserved audit & phase reports
+│       └── ARCHIVE_INDEX.md
+│
+├── src/                                      # Source code
+│   ├── phase3/                               # Phase 3 core implementation
+│   │   ├── config.py                         # Unified dataclass configuration
+│   │   ├── forecasting/                      # GRU models, age-weighted merge, APSM gate
+│   │   ├── env/                              # Edge discrete-event network simulator
+│   │   ├── marl/                             # MADQN agent, replay buffer, state encoders
+│   │   ├── integration/                      # Live integrated simulation engine
+│   │   ├── run_stage6_integrated.py          # N=10 integrated benchmark runner
+│   │   └── run_stage7_scalability.py         # N=50 and N=100 scalability runner
+│   └── gossiplearning/                       # Core gossip learning library routines
+│
+├── tests/                                    # Automated test suite (47 tests passing)
+│   └── phase3/
+│       ├── test_stage1_data.py               # Dataset causality & topology checks
+│       ├── test_stage3_forecasting.py        # Forecaster, merge & APSM gate unit tests
+│       ├── test_stage4_simulator.py          # Simulation physics & conservation tests
+│       ├── test_stage5_marl.py               # MADQN training, execution & masking tests
+│       ├── test_stage6_integration.py        # N=10 integration & causality tests
+│       └── test_stage7_scalability.py        # N=50/100 scalability & checkpoint tests
+│
+├── results/                                  # Canonical benchmark results & checkpoints
+│   └── phase3/                               # Verified JSON results & SHA-256 manifests
+│       ├── stage6_integrated_10n_reconciled.json
+│       ├── stage7_scalability/               # N=50 and N=100 verified results
+│       └── ...
+│
+├── assets/                                   # Porto spatial topology & bounding boxes
+├── data/                                     # Alibaba cluster data traces
+├── papers/                                   # Foundational reference research papers (PDF)
+└── scripts/                                  # Metric compilation and manifest generators
+```
+
+---
+
+## 5. Quick Start & Reproducibility
+
+### 5.1 Environment Setup
+
+Ensure Python 3.10+ is installed:
 
 ```bash
-# Install dependencies
-poetry install
+# Clone the repository
+git clone https://github.com/parth-1372/APSM-MTP.git
+cd APSM-MTP
 
-# Run 3-Way Benchmark: Federated Learning vs GL-Baseline vs APSM
-cd src/
-python run_all_comparisons.py
+# Create virtual environment and activate
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\Activate.ps1
+
+# Install package in editable mode with development dependencies
+pip install -e .
 ```
 
-## Results (Full Run — Kaggle GPU T4, June 2026)
+### 5.2 Running the Test Suite
 
-| Metric | Federated Learning (FL) | GL-Baseline | APSM Phase 2 |
-|---|---|---|---|
-| Topology | Central Star (SPOF) | P2P Mesh Graph | Sparse P2P Mesh |
-| Avg MSE (scaled) | ~0.00918 | 0.009269 | 0.009332 (+0.69%) |
-| Packets Sent | ~2,000 (2N / round) | 1,447 | 1,314 |
-| Packets Suppressed | 0 | 0 | **1,674** |
-| **Packet Reduction vs GL** | — | 0% | **53.6% ✅** |
-| Server Dependency | YES (Bottleneck) | NO (Fully P2P) | NO (Fully P2P) |
+Execute the complete regression and invariant test suite:
 
-## Documentation
-
-- [`docs/RESEARCH_REPORT.md`](docs/RESEARCH_REPORT.md) — Full research report (dataset, baseline, APSM design, results)
-- [`docs/CODEBASE_GUIDE.md`](docs/CODEBASE_GUIDE.md) — File map + where to find what
-- [`docs/phase2_explanation.md`](docs/phase2_explanation.md) — Conceptual explanation of the APSM mechanism
-
-## Project Structure
-
-```
-MTP/
-├── docs/                    ← Research report & codebase guide
-├── src/
-│   ├── gossiplearning/      ← Core simulation engine (DES + APSM)
-│   ├── utils/               ← Dataset, metrics, model builders
-│   ├── configs/             ← Secondary experiment configs
-│   ├── scripts/             ← Data setup utilities
-│   ├── review/              ← Files pending review (not canonical)
-│   ├── experiments_full/    ← Canonical 7-hour run outputs
-│   └── run_all_comparisons.py  ← Main experiment script
-├── results/Phase2_Full/     ← Graphs, CSV, JSON, run log
-├── data/                    ← Porto taxi dataset (npz + network graphs)
-└── fl-baseline/             ← Reference Flower/FedAvg baseline
+```bash
+python -m pytest tests/phase3 -v
 ```
 
-## Base Paper
+All 47 unit, integration, and scalability tests verify:
+- Non-oracle temporal causality (no forward-looking data leakage).
+- 100% discrete task conservation across nodes and networks.
+- Physical link bandwidth contention and channel separation.
+- Post-warmup checkpoint selection invariants.
+- Strict RFC 8259 JSON compliance.
 
-> Tundo, A. et al. "Decentralized Edge Workload Forecasting with Gossip Learning."  
-> *IEEE Transactions on Network and Service Management*, Special Issue on Next Generation Networks, 2025.  
-> Data: [Zenodo](https://doi.org/10.5281/zenodo.15393791)
+### 5.3 Executing Scalability Benchmarks
 
-## License
+To execute or re-verify the integrated benchmark runs:
 
-Distributed under the GPL v3 license. See [LICENSE](LICENSE) for more information.
+```bash
+# N=10 Integrated Benchmark (6 arms, 5 seeds)
+python -m src.phase3.run_stage6_integrated --seeds 11 22 33 44 55
+
+# N=50 Scalability Benchmark
+python -m src.phase3.run_stage7_scalability --nodes 50 --seeds 11 22 33 44 55
+
+# N=100 Scalability Benchmark
+python -m src.phase3.run_stage7_scalability --nodes 100 --seeds 11 22 33 44 55
+```
+
+---
+
+## 6. Citation
+
+If you build upon or reference this work in academic research, please cite:
+
+```bibtex
+@mastersthesis{parth2026apsmmtp,
+  author       = {Parth},
+  title        = {Decentralized Edge Workload Forecasting using Semantic Gossip Learning and Agentic AI},
+  school       = {Indian Institute of Information Technology, Design and Manufacturing},
+  year         = {2026},
+  month        = {May},
+  note         = {Extending IEEE TNSM 2025 Gossip Learning with Adaptive Predictive-Semantic Mechanism (APSM)}
+}
+```

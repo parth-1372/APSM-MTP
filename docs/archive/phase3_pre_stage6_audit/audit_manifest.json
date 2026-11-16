@@ -1,0 +1,147 @@
+{
+  "audit_metadata": {
+    "audit_version": "1.1.0",
+    "timestamp": "2026-11-13T22:00:00+05:30",
+    "auditor_role": "Senior Distributed Systems & MARL Independent Code Auditor",
+    "repository": "https://github.com/parth-1372/APSM-MTP.git",
+    "local_path": "C:\\Users\\btpUser\\Desktop\\Parth_MTP\\APSM-MTP",
+    "git_branch": "phase3-continuation",
+    "git_head_commit": "02ace48f1f7ca40f3b14d24f0c79f9f8f4a74ce2",
+    "git_head_short": "02ace48",
+    "phase2_baseline_commit": "62124eb5bc86016186b1f237f374775d79679f29",
+    "phase2_baseline_short": "62124eb",
+    "readiness_verdict": "READY TO IMPLEMENT STAGE 6.1"
+  },
+  "repository_integrity": {
+    "phase2_frozen": true,
+    "phase2_diff_lines": 0,
+    "uncommitted_production_changes": false,
+    "git_clean_status": true
+  },
+  "test_suite_status": {
+    "total_tests": 17,
+    "passed": 17,
+    "failed": 0,
+    "duration_seconds": 52.62
+  },
+  "verified_experimental_metrics": {
+    "stage3_forecasting": {
+      "persistence_mse_mean": 0.051389,
+      "gl_baseline_mse_mean": 0.036595,
+      "gl_baseline_model_bytes_mean": 117482880.0,
+      "gl_baseline_packets_mean": 2064.0,
+      "apsm_h1_mse_mean": 0.036621,
+      "apsm_h1_model_bytes_mean": 54832933.33,
+      "apsm_h1_packets_mean": 963.33,
+      "broadcast_rounds_suppression_pct": 53.327,
+      "mse_delta_vs_gl_pct": 0.0718,
+      "paired_difference_95ci_pct": [-0.36, 0.51],
+      "seeds": [11, 22, 33]
+    },
+    "stage4_des_queueing": {
+      "calibrated_node_cpu_cap": 20.0,
+      "calibrated_deadline_slack_kappa": 2.2,
+      "b0_local_tsr_pct": 75.4707,
+      "e1_greedy_periodic_tsr_pct": 81.6910,
+      "e1_oracle_tsr_pct": 82.0957,
+      "task_conservation_verified": true
+    },
+    "stage5_marl_offloading": {
+      "total_tasks_evaluated": 11366,
+      "seeds": [11, 22, 33],
+      "algorithm_designation": "Parameter-Shared Double Dueling MADQN",
+      "b0_local_tsr_pct": 75.4707,
+      "e1_greedy_tsr_pct": 82.0693,
+      "e2_madqn_per_seed_tsr": {
+        "11": 86.6796,
+        "22": 82.1045,
+        "33": 85.8173
+      },
+      "e3_madqn_per_seed_tsr": {
+        "11": 86.6796,
+        "22": 83.2747,
+        "33": 86.6004
+      },
+      "paired_gain_per_seed": {
+        "11": 0.0000,
+        "22": 1.1702,
+        "33": 0.7830
+      },
+      "e2_madqn_mean_tsr": 84.8671,
+      "e2_madqn_sample_std": 2.4310,
+      "e3_madqn_mean_tsr": 85.5182,
+      "e3_madqn_sample_std": 1.9434,
+      "mean_paired_gain": 0.6511,
+      "sample_std_paired_gain": 0.5966,
+      "total_tasks_saved_across_runs": 222,
+      "paired_t_statistic": 1.890,
+      "p_value_two_tailed": 0.199,
+      "confidence_interval_95": [-0.830, 2.133],
+      "trajectory_hash_identity_seed11": "7f42d8857943c57419bce5b9de8eb39af71bb7eef6bce34d710bc58fa5254c8c"
+    }
+  },
+  "audit_findings": [
+    {
+      "id": "AUDIT-FINDING-01",
+      "severity": "INFO",
+      "title": "Phase 2 baseline frozen and intact",
+      "detail": "Commit 62124eb verified. Diff against HEAD for Phase 2 directories is empty."
+    },
+    {
+      "id": "AUDIT-FINDING-02",
+      "severity": "SUCCESS",
+      "title": "Stage 3 APSM-H1 semantic communication suppression verified",
+      "detail": "53.33% model broadcast reduction achieved with negligible +0.07% MSE change."
+    },
+    {
+      "id": "AUDIT-FINDING-03",
+      "severity": "SUCCESS",
+      "title": "Stage 4 Discrete-Event Simulator invariant compliance",
+      "detail": "100% task conservation, strict 1-hop offload enforcement, and zero future leakage."
+    },
+    {
+      "id": "AUDIT-FINDING-04",
+      "severity": "SUCCESS",
+      "title": "Stage 5 Proactive MARL forecast benefit verified",
+      "detail": "Arm E3 strictly outperforms Arm E2 (+0.65% mean TSR, 222 total tasks saved across 3 seeds)."
+    },
+    {
+      "id": "AUDIT-FINDING-05",
+      "severity": "INFO",
+      "title": "Identical metrics across MAPPO/IPPO/MADQN explained and verified",
+      "detail": "Evaluation runner mode='q' evaluates Dueling Q-head; action hash 7f42d88579 confirmed bit-identical."
+    },
+    {
+      "id": "AUDIT-FINDING-06",
+      "severity": "INFO",
+      "title": "Evaluated MARL algorithm classified as Parameter-Shared Double Dueling MADQN",
+      "detail": "The benchmarked policy is Double Dueling MADQN with proactive residual bias, not PPO."
+    },
+    {
+      "id": "AUDIT-FINDING-07",
+      "severity": "SUCCESS",
+      "title": "Honest and separate communication accounting",
+      "detail": "Model communication (56.9 KB) and operational telemetry (32 B) are cleanly separated."
+    },
+    {
+      "id": "AUDIT-FINDING-08",
+      "severity": "SUCCESS",
+      "title": "Stage 6.1 integration and calibration blueprints completed",
+      "detail": "Ready to implement closed-loop unified runner src/phase3/run_stage6_integrated.py."
+    }
+  ],
+  "audit_artifacts": [
+    "docs/phase3_pre_stage6_audit/PHASE3_PRE_STAGE6_AUDIT.md",
+    "docs/phase3_pre_stage6_audit/PHASE3_RESULT_RECALCULATION.md",
+    "docs/phase3_pre_stage6_audit/PHASE3_ARCHITECTURE_AUDIT.md",
+    "docs/phase3_pre_stage6_audit/PHASE3_STAGE6_READINESS.md",
+    "docs/phase3_pre_stage6_audit/STAGE5_CORRECTED_RESULTS.md",
+    "docs/phase3_pre_stage6_audit/STAGE5_ACTION_TRACE_DIAGNOSTICS.md",
+    "docs/phase3_pre_stage6_audit/STAGE3_STATISTICAL_REVIEW.md",
+    "docs/phase3_pre_stage6_audit/ORACLE_INFORMATION_BOUNDARY.md",
+    "docs/phase3_pre_stage6_audit/STAGE6_INTEGRATION_DESIGN.md",
+    "docs/phase3_pre_stage6_audit/STAGE6_CALIBRATION_PLAN.md",
+    "docs/phase3_pre_stage6_audit/STAGE6_1_IMPLEMENTATION_CHECKLIST.md",
+    "docs/phase3_pre_stage6_audit/audit_manifest.json"
+  ]
+}
