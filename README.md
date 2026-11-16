@@ -8,7 +8,7 @@
 > **Master's Thesis Research Project (APSM-MTP)**  
 > Author: Parth (Roll No. 2022IMT082)  
 > Department of Computer Science & Engineering  
-> Base Paper: Alessandro Tundo et al., *"Gossip Learning for Edge Computing: A Decentralized Machine Learning Approach to Urban Traffic Prediction,"* **IEEE Transactions on Network and Service Management (TNSM)**, 2025. [DOI: 10.1109/TNSM.2024.3491200](https://doi.org/10.1109/TNSM.2024.3491200).
+> Base Paper: Alessandro Tundo, Federica Filippini, Francesco Regonesi, Michele Ciavotta, and Marco Savi, *"Decentralized Edge Workload Forecasting With Gossip Learning,"* **IEEE Transactions on Network and Service Management (TNSM)**, Vol. 22, No. 4, pp. 3016–3031, August 2025. [DOI: 10.1109/TNSM.2025.3570450](https://doi.org/10.1109/TNSM.2025.3570450).
 
 ---
 
