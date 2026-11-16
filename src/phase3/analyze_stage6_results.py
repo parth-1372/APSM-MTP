@@ -380,7 +380,7 @@ def analyze_stage6(json_path: str, out_md_path: str) -> Dict[str, Any]:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyze Phase 3 Stage 6 experimental results")
     parser.add_argument("--results", type=str, default="results/phase3/stage6_integrated_10n_reconciled.json")
-    parser.add_argument("--output", type=str, default="docs/phase3_stage6_final_reconciliation/CORRECTED_STATISTICAL_ANALYSIS.md")
+    parser.add_argument("--output", type=str, default="docs/archive/phase3_stage6_final_reconciliation/CORRECTED_STATISTICAL_ANALYSIS.md")
     args = parser.parse_args()
 
     analyze_stage6(

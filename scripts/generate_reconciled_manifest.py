@@ -26,12 +26,12 @@ def main():
         "src/phase3/integration/live_gossip_engine.py",
         "src/phase3/analyze_stage6_results.py",
         "tests/phase3/test_stage6_integration.py",
-        "docs/phase3_stage6_final_reconciliation/FINAL_SOURCE_VS_DOCUMENTATION_AUDIT.md",
-        "docs/phase3_stage6_final_reconciliation/CORRECTED_DATA_AND_METHODOLOGY.md",
-        "docs/phase3_stage6_final_reconciliation/CORRECTED_FORECAST_EVALUATION.md",
-        "docs/phase3_stage6_final_reconciliation/CORRECTED_STATISTICAL_ANALYSIS.md",
-        "docs/phase3_stage6_final_reconciliation/FINAL_RESEARCH_CONCLUSION.md",
-        "docs/phase3_stage6_final_reconciliation/REPRODUCIBILITY_AND_TEST_EVIDENCE.md",
+        "docs/archive/phase3_stage6_final_reconciliation/FINAL_SOURCE_VS_DOCUMENTATION_AUDIT.md",
+        "docs/archive/phase3_stage6_final_reconciliation/CORRECTED_DATA_AND_METHODOLOGY.md",
+        "docs/archive/phase3_stage6_final_reconciliation/CORRECTED_FORECAST_EVALUATION.md",
+        "docs/archive/phase3_stage6_final_reconciliation/CORRECTED_STATISTICAL_ANALYSIS.md",
+        "docs/archive/phase3_stage6_final_reconciliation/FINAL_RESEARCH_CONCLUSION.md",
+        "docs/archive/phase3_stage6_final_reconciliation/REPRODUCIBILITY_AND_TEST_EVIDENCE.md",
     ]
 
     manifest = {

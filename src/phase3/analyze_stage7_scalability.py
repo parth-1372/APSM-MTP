@@ -268,7 +268,7 @@ def main():
     parser.add_argument(
         "--output",
         type=str,
-        default="docs/phase3_stage7_scalability/STAGE7_RESULTS_AND_ANALYSIS.md",
+        default="docs/archive/phase3_stage7_scalability/STAGE7_RESULTS_AND_ANALYSIS.md",
         help="Markdown output path",
     )
     args = parser.parse_args()
